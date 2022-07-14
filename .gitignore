@@ -1,0 +1,14 @@
+dist-newstyle
+
+.hie/
+.bin/
+
+# editor related
+*.orig
+*~
+.dir-locals.el
+.projectile
+.vscode
+
+# macOS related
+.DS_Store
