@@ -8,35 +8,41 @@ main = putStrLn "Hello, Haskell!"
 data Game = Game [Move]
   deriving (Eq)
 
-data Move = Move Square Square
-  deriving (Eq)
-
-instance Show Move where
-  show (Move from to) = show from ++ "-" ++ show to
-
-data Square = Square File Rank
-  deriving (Eq)
-
-instance Show Square where
-  show (Square f r) = show f ++ show r
-
-data File = FA | FB | FC | FD | FE | FF | FG | FH
-  deriving (Eq, Ord, Enum)
-
-instance Show File where
-  show = show . chr . (ord 'a' +) . fromEnum
-
-data Rank = R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8
-  deriving (Eq, Ord, Enum)
-
-instance Show Rank where
-  show = show . (+ 1) . fromEnum
-
-data Board = Board [(Piece, Square)]
+data Color = White | Black
   deriving (Eq, Show)
 
 data PieceType = Pawn | Knight | Bishop | Rook | Queen | King
   deriving (Eq, Enum, Ord)
+
+data Piece = Piece Color PieceType
+  deriving (Eq, Show)
+
+data Move = Move Square Square
+  deriving (Eq)
+
+data Square = Square File Rank
+  deriving (Eq)
+
+data File = FA | FB | FC | FD | FE | FF | FG | FH
+  deriving (Eq, Ord, Enum)
+
+data Rank = R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8
+  deriving (Eq, Ord, Enum)
+
+data Board = Board [(Piece, Square)]
+  deriving (Eq, Show)
+
+instance Show Move where
+  show (Move from to) = show from ++ "-" ++ show to
+
+instance Show Square where
+  show (Square f r) = show f ++ show r
+
+instance Show File where
+  show = show . chr . (ord 'a' +) . fromEnum
+
+instance Show Rank where
+  show = show . (+ 1) . fromEnum
 
 instance Show PieceType where
   show piece = case piece of
@@ -46,12 +52,6 @@ instance Show PieceType where
     Rook -> "R"
     Queen -> "Q"
     King -> "K"
-
-data Color = White | Black
-  deriving (Eq, Show)
-
-data Piece = Piece Color PieceType
-  deriving (Eq, Show)
 
 type InvalidMoveMsg = String
 
