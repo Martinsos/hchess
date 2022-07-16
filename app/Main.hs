@@ -1,9 +1,10 @@
 module Main where
 
-import Control.Monad (unless, when)
+import Control.Monad (when, (<=<))
 import Data.Char (chr, ord)
 import Data.Foldable (find)
-import Data.Maybe (fromJust, isNothing)
+import Data.Maybe (catMaybes, isNothing, mapMaybe)
+import qualified Data.Set as S
 
 main :: IO ()
 main = putStrLn "Hello, Haskell!"
@@ -24,7 +25,7 @@ data Move = Move Square Square
   deriving (Eq)
 
 data Square = Square File Rank
-  deriving (Eq)
+  deriving (Eq, Ord)
 
 data File = FA | FB | FC | FD | FE | FF | FG | FH
   deriving (Eq, Ord, Enum, Bounded)
@@ -72,67 +73,106 @@ initialBoard =
     capitalPieces color rank = zip (Piece color <$> capitalPiecesOrder) ((\f -> Square f rank) <$> [FA .. FH])
     capitalPiecesOrder = [Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook]
 
--- performMove :: Board -> Move -> Either InvalidMoveMsg Board
--- performMove board (Move src dst) =
---     -- TODO: Verify that own king is not checkmated by the move!
---     if checkIfValidMove board src dst
---        then error "TODO"
---        else undefined
-
-checkIfValidMove :: Board -> Color -> Move -> Either InvalidMoveMsg ()
-checkIfValidMove board playerColor (Move src@(Square srcFile srcRank) dst@(Square dstFile dstRank)) = do
+getValidMoves :: Game -> Square -> Either String (S.Set Square)
+getValidMoves game src@(Square srcFile srcRank) = do
   (Piece srcPieceColor srcPieceType) <- maybeToEither "No piece at specified location" $ getPiece board src
-  when (srcPieceColor /= playerColor) $ Left "Can't move oponnent's piece"
-  case srcPieceType of
-    Pawn ->
-      let squareForward' = squareForward playerColor
-          startingRank = if playerColor == White then R2 else R7
-          isMovingOneRankForward = Just dst == squareForward' src
-          isMovingTwoRanksForwardFromStartingRank =
-            srcRank == startingRank
-              && Just dst == (squareForward' =<< squareForward' src)
-              && isPathStraightAndFree board src dst
-       in unless (onSameFile src dst && (isMovingOneRankForward || isMovingTwoRanksForwardFromStartingRank)) $
-            Left "Invalid move"
-    Knight ->
-      unless
-        ( Just dst
-            `elem` [ squareUp =<< squareUp =<< squareRight src,
-                     squareUp =<< squareUp =<< squareLeft src,
-                     squareUp =<< squareRight =<< squareRight src,
-                     squareUp =<< squareLeft =<< squareLeft src,
-                     squareDown =<< squareDown =<< squareRight src,
-                     squareDown =<< squareDown =<< squareLeft src,
-                     squareDown =<< squareRight =<< squareRight src,
-                     squareDown =<< squareLeft =<< squareLeft src
-                   ]
-        )
-        $ Left "Invalid move"
-    Bishop -> unless (onSameDiagonal src dst && isPathStraightAndFree board src dst) $ Left "Invalid move"
-    Rook -> unless ((onSameFile src dst || onSameRank src dst) && isPathStraightAndFree board src dst) $ Left "Invalid move"
-    Queen -> unless (isPathStraightAndFree board src dst) $ Left "Invalid move"
-    King ->
-      unless
-        ( Just dst
-            `elem` [ squareUp src,
-                     squareUp =<< squareLeft src,
-                     squareUp =<< squareRight src,
-                     squareLeft src,
-                     squareRight src,
-                     squareDown src,
-                     squareDown =<< squareLeft src,
-                     squareDown =<< squareRight src
-                   ]
-        )
-        $ Left "Invalid move"
-  when ((pieceColor <$> getPiece board dst) == Just playerColor) $
-    Left "Blocked by your own piece."
+  when (srcPieceColor /= currentPlayerColor) $ Left "Can't move oponnent's piece"
+  let validMoves = case srcPieceType of
+        Pawn ->
+          let startingPawnRank = if currentPlayerColor == White then R2 else R7
+              squareFwd = squareForward currentPlayerColor
+              maybeSquareForward = squareFwd src >>= validate (isSquareEmpty board)
+              maybeTwoSquaresForward = do
+                if srcRank /= startingPawnRank
+                  then Nothing
+                  else
+                    squareFwd src
+                      >>= validate (isSquareEmpty board)
+                      >>= squareFwd
+                      >>= validate (isSquareEmpty board)
+              maybeForwardRightSquare =
+                -- TODO: Take en-passant into consideration.
+                squareFwd src
+                  >>= squareRight
+                  >>= validate (doesSquareContainOpponentsPiece currentPlayerColor board)
+              maybeForwardLeftSquare =
+                -- TODO: Take en-passant into consideration.
+                squareFwd src
+                  >>= squareLeft
+                  >>= validate (doesSquareContainOpponentsPiece currentPlayerColor board)
+           in (S.fromList . catMaybes)
+                [ maybeSquareForward,
+                  maybeTwoSquaresForward,
+                  maybeForwardRightSquare,
+                  maybeForwardLeftSquare
+                ]
+        Knight ->
+          (S.fromList . mapMaybe ($ src))
+            [ squareUp <=< squareUp <=< squareRight,
+              squareUp <=< squareUp <=< squareLeft,
+              squareUp <=< squareRight <=< squareRight,
+              squareUp <=< squareLeft <=< squareLeft,
+              squareDown <=< squareDown <=< squareRight,
+              squareDown <=< squareDown <=< squareLeft,
+              squareDown <=< squareRight <=< squareRight,
+              squareDown <=< squareLeft <=< squareLeft
+            ]
+        Bishop -> getDiagonallyAccessibleSquares board src
+        Rook -> getPerpendicularlyAccessibleSquares board src
+        Queen -> getDiagonallyAccessibleSquares board src <> getPerpendicularlyAccessibleSquares board src
+        King ->
+          -- TODO: Filter out moves that are too close to oponnent's king!
+          -- TODO: Allow castling!
+          (S.fromList . mapMaybe ($ src))
+            [ squareUp,
+              squareUp <=< squareLeft,
+              squareUp <=< squareRight,
+              squareLeft,
+              squareRight,
+              squareDown,
+              squareDown <=< squareLeft,
+              squareDown <=< squareRight
+            ]
+  -- TODO: Filter out moves that cause player's king to be under attack!
+  return validMoves
+  where
+    board = getBoard game
+    currentPlayerColor = getCurrentPlayerColor game
 
--- TODO: Check if king is trying to castle -> if so, allow it. But check comment below, I will need history to know if castle or king moved!
--- TODO: Check if king gets exposed during the move -> if it does, move is invalid.
--- TODO: Allow en-passant. Although for that I need to know previous move, right? Hm that means I need to know history, which I don't have at the moment.
---  Actually, I will also need history to figure out castling!
---  Ok so I need to probably change signature to isValidMove :: Game -> Square -> Square -> Either InvalidMoveMsg ()
+getBoard :: Game -> Board
+getBoard game = error "TODO: Either calculate it by using moves, or get it from Game if it is stored in there."
+
+getCurrentPlayerColor :: Game -> Color
+getCurrentPlayerColor (Game moves) = if even (length moves) then White else Black
+
+getPerpendicularlyAccessibleSquares :: Board -> Square -> S.Set Square
+getPerpendicularlyAccessibleSquares =
+  getAccessibleSquaresInDirections [squareUp, squareDown, squareRight, squareLeft]
+
+getDiagonallyAccessibleSquares :: Board -> Square -> S.Set Square
+getDiagonallyAccessibleSquares =
+  getAccessibleSquaresInDirections
+    [ squareLeft <=< squareUp,
+      squareRight <=< squareUp,
+      squareLeft <=< squareDown,
+      squareRight <=< squareDown
+    ]
+
+getAccessibleSquaresInDirections :: [Square -> Maybe Square] -> Board -> Square -> S.Set Square
+getAccessibleSquaresInDirections nextSquareInDirectionGetters board startSquare =
+  mconcat $ (\f -> getAccessibleSquaresInDirection f board startSquare) <$> nextSquareInDirectionGetters
+
+getAccessibleSquaresInDirection :: (Square -> Maybe Square) -> Board -> Square -> S.Set Square
+getAccessibleSquaresInDirection getNextSquareInDirection board startSquare =
+  S.delete startSquare $ S.fromList $ go startSquare
+  where
+    go :: Square -> [Square]
+    go sq =
+      let emptyNextSquare = validate (isSquareEmpty board) =<< getNextSquareInDirection sq
+       in sq : maybe [] go emptyNextSquare
+
+validate :: (a -> Bool) -> a -> Maybe a
+validate p a = if p a then Just a else Nothing
 
 onSameDiagonal :: Square -> Square -> Bool
 onSameDiagonal (Square f1 r1) (Square f2 r2) = fromEnum f1 - fromEnum r1 == fromEnum f2 - fromEnum r2
@@ -151,6 +191,11 @@ getPiece (Board pieces) square = fst <$> find ((== square) . snd) pieces
 
 isSquareEmpty :: Board -> Square -> Bool
 isSquareEmpty board square = isNothing $ getPiece board square
+
+doesSquareContainOpponentsPiece :: Color -> Board -> Square -> Bool
+doesSquareContainOpponentsPiece color board square = case getPiece board square of
+  Just piece -> pieceColor piece == color
+  Nothing -> False
 
 pieceColor :: Piece -> Color
 pieceColor (Piece color _) = color
