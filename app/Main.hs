@@ -183,9 +183,6 @@ onSameRank (Square _ r1) (Square _ r2) = r1 == r2
 onSameFile :: Square -> Square -> Bool
 onSameFile (Square f1 _) (Square f2 _) = f1 == f2
 
-isPathStraightAndFree :: Board -> Square -> Square -> Bool
-isPathStraightAndFree = error "TODO: check if path betwen two squares is straight and contains no pieces (start and end squares can contain pieces)."
-
 getPiece :: Board -> Square -> Maybe Piece
 getPiece (Board pieces) square = fst <$> find ((== square) . snd) pieces
 
