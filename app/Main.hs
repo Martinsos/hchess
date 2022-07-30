@@ -1,8 +1,10 @@
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
+{-# HLINT ignore "Use newtype instead of data" #-}
 module Main where
 
 import Control.Monad (when, (<=<))
 import Data.Char (chr, ord)
-import Data.Either (isLeft)
 import Data.Foldable (find, foldl')
 import Data.Maybe (catMaybes, fromJust, isNothing, mapMaybe)
 import qualified Data.Set as S
@@ -23,7 +25,7 @@ data Piece = Piece Color PieceType
   deriving (Eq, Show)
 
 -- | Order, by user, describing a move they would like to make.
-data MoveOrder = MoveOrder Square Square | PawnPromotionOrder Square Square Piece
+data MoveOrder = MoveOrder Square Square | PawnPromotionOrder Square Square PieceType
 
 -- | Actual valid move that can be performed, containing some additional information about its context.
 data Move = Move Square Square MoveType
@@ -78,23 +80,29 @@ initialBoard =
       ]
   where
     pawns color rank = (\f -> (Piece color Pawn, Square f rank)) <$> [FA .. FH]
-    capitalPieces color rank = zip (Piece color <$> capitalPiecesOrder) ((\f -> Square f rank) <$> [FA .. FH])
+    capitalPieces color rank = zip (Piece color <$> capitalPiecesOrder) ((`Square` rank) <$> [FA .. FH])
     capitalPiecesOrder = [Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook]
 
 getBoard :: Game -> Board
 getBoard (Game moves) = foldl' (\board move -> fromEither $ performMoveOnBoard board move) initialBoard moves
 
 isGameOver :: Game -> GameResult
-isGameOver = error "TODO"
+isGameOver game = error "TODO"
 
-isCurrentPlayerInCheck :: Game -> Bool
-isCurrentPlayerInCheck game = isSquareUnderAttackByOpponent game $ findKing (getCurrentPlayerColor game)
+isPlayerInCheck :: Color -> Board -> Bool
+isPlayerInCheck currentPlayerColor board@(Board pieces) = any isKingUnderAttackByPiece oponnentPieces
+  where
+    kingsSquare = findKing currentPlayerColor board
+    oponnentColor = oppositeColor currentPlayerColor
+    oponnentPieces = filter (\(Piece c _, _) -> c == oponnentColor) pieces
+    isKingUnderAttackByPiece piece = kingsSquare `S.member` getValidDstSquaresForPiece piece
+    getValidDstSquaresForPiece (Piece _ _, pieceSquare) = getMoveDstSquare `S.map` fromEither (getValidSimpleMoves oponnentColor board pieceSquare)
 
 -- | TODO: What if game is done? Do we check that here and in that case
 --   don't allow performing the move? Or we don't care about that here?
-performMove :: Game -> (Square, Square) -> Either String Game
+performMove :: Game -> MoveOrder -> Either String Game
 performMove game@(Game moves) moveOrder = do
-  validMove <- mkValidMove game moveOrder
+  validMove <- makeValidMove game moveOrder
   return $ Game $ validMove : moves
 
 -- | Performs a given move on the board, while assuming it is valid.
@@ -119,37 +127,88 @@ performMoveOnBoard board move =
 --   It would first call getValidMoves, confirm that given move (which is (Square, Squrae)) is indeed one of those valid moves, and then it would create the Move from it.
 --   If we have this nice system we can even add more info to each move, like is it attack, which piece is it moving, which player, ... -> then they are very standalone which is nice.
 --   Or, have this function accept more elaborate type, smth like data MoveOrder = RegularMoveOrder Square Square | PawnPromotionOrder Piece.
-mkValidMove :: Game -> (Square, Square) -> Either String Move
-mkValidMove game (srcSquare, dstSquare) = do
-  validMoves <- getValidMoves game srcSquare
-  -- TODO: Handle pawn promotion! If we have pawn promotion, we will have multiple valid moves here,
-  --   but we will return only the first one. What should we do about it? Either caller can detect this
-  --   and explicitely handle it by asking user for the piece they want to exchange, or we could
-  --   modify this function so it returns multiple moves which then means user has to choose among them,
-  --   or maybe it could even return special value which indicates pawn promotion so it needs to be handled explicitely.
-  case find (\(Move _ validDstSquare _) -> dstSquare == validDstSquare) validMoves of
-    Just move -> Right move
+-- | Given current state of the game and a move order, returns an actual move that would match that move order, while ensuring it is valid.
+-- If it is not a valid move, error message is returned.
+makeValidMove :: Game -> MoveOrder -> Either String Move
+makeValidMove game moveOrder = do
+  validMoves <- getValidAndSafeMoves game $ fst $ getMoveOrderSquares moveOrder
+  case find (doesMoveOrderEqualMove moveOrder) validMoves of
+    Just validMove -> Right validMove
     Nothing -> Left "Can't move there"
+  where
+    -- TODO: move more global?
+    getMoveOrderSquares (MoveOrder src dst) = (src, dst)
+    getMoveOrderSquares (PawnPromotionOrder src dst _) = (src, dst)
+
+    -- TODO: move more global?
+    doesMoveOrderEqualMove moveOrder' (Move srcSquare dstSquare moveType) =
+      case moveOrder' of
+        MoveOrder srcSquare' dstSquare' -> srcSquare == srcSquare' && dstSquare == dstSquare'
+        PawnPromotionOrder srcSquare' dstSquare' newPieceType' -> srcSquare == srcSquare' && dstSquare == dstSquare' && moveType == PawnPromotion newPieceType'
 
 -- TODO: This function is huge, take it out into separate module and move complex functions in @where@ to standalone functions.
 
--- | If first argument is Game, then you are given all possible valid moves for the player whose turn it is.
---   If first argument is (Color, Board), then you are given all possible "simple moves" for the player of specified color.
---   "Simple moves" here stands for moves that don't require history -> that is all moves except for enpassant and castling.
--- TODO: Split this function into getValidSimpleMoves that takes (Color, Board) and then returns all valid moves except for enpassant and castling,
---   and it also doesn't filter moves that expose own king to check,
---   and then another function called getValidMoves that takes Game, calls getValidSimpleMoves, and then adds "complex moves" on top of that,
---   and also checks that they don't expose own king to check.
---   Then we can use the first one when trying to determine if a square is under attack (beacuse "complex moves" don't affect that),
---   and second one when actually choosing from moves to perform.
---   Hm but keep in mind that when determining if king is under attack, then attacks that expose their own king are ok.
---   But if trying to determine if some other square is under attack, then exposing their own king is not ok.
---   I could just go with this: if attack is endangering own king, then it is not valid, UNLESS it actually attacks enemy king, then it is ok.
---   Oooooouffff I got really entangled due to trying to keep this "move making" logic in one place. There are just a lot of special cases.
-getValidMoves :: Either Game (Color, Board) -> Square -> Either String (S.Set Move)
-getValidMoves gameOrBoard src@(Square _ srcRank) = do
+-- TODO: Rename "valid" to "possible" and "validAndSafe" to "valid"? What I am trying to do is find a name
+--   for moves that are valid but might expose the king to check, and then also find a name for moves
+--   that are valid but also don't expose the king to a check.
+
+getValidAndSafeMoves :: Game -> Square -> Either String (S.Set Move)
+getValidAndSafeMoves game srcSquare = do
+  validMoves <- getValidMoves game srcSquare
+  return $ S.filter (not . doesMovePutOwnKingInCheck) validMoves
+  where
+    (board, currentPlayerColor) = (getBoard game, getCurrentPlayerColor game)
+
+    doesMovePutOwnKingInCheck :: Move -> Bool
+    doesMovePutOwnKingInCheck move = isPlayerInCheck currentPlayerColor (fromEither $ performMoveOnBoard board move)
+
+-- NOTE: This returns all moves including for castling and en passant. It doesn't check if a move exposes its own king to a check.
+getValidMoves :: Game -> Square -> Either String (S.Set Move)
+getValidMoves game srcSquare = do
+  -- TODO: This is duplicated in getValidSimpleMoves.
+  (Piece srcPieceColor srcPieceType) <- maybeToEither "No piece at specified location" $ getPiece board srcSquare
+  when (srcPieceColor /= currentPlayerColor) $ Left "Can't move oponnent's piece"
+
+  simpleMoves <- getValidSimpleMoves currentPlayerColor board srcSquare
+
+  -- NOTE: special moves are castling and enpassant. They are special because they require history of the game, not just current board state.
+  -- Also, interesting and important -> none of them can attack enemy king.
+  -- TODO: Extract this into special getValidSpecialMoves function?
+  let specialMoves = case srcPieceType of
+        Pawn -> pawnValidSpecialMoves
+        King -> kingValidSpecialMoves
+        _ -> S.empty
+
+  return $ simpleMoves `S.union` specialMoves
+  where
+    (board, currentPlayerColor) = (getBoard game, getCurrentPlayerColor game)
+
+    pawnValidSpecialMoves =
+      (S.fromList . catMaybes)
+        [ squareFwd srcSquare >>= squareRight >>= registerAsEnPassant,
+          squareFwd srcSquare >>= squareLeft >>= registerAsEnPassant
+        ]
+      where
+        -- TODO: Duplication.
+        squareFwd = squareForward currentPlayerColor
+
+        registerAsEnPassant :: Square -> Maybe Move
+        registerAsEnPassant dstSquare
+          | isMoveEnPassant game dstSquare = return $ mkMove EnPassant dstSquare
+          | otherwise = Nothing
+
+        -- TODO: Duplication.
+        mkMove :: MoveType -> Square -> Move
+        mkMove moveType dstSquare = Move srcSquare dstSquare moveType
+
+    kingValidSpecialMoves = error "TODO: castling"
+
+-- NOTE: This returns all moves except for castling and en passant. Also, it doesn't check if a move exposes its own king to a check.
+getValidSimpleMoves :: Color -> Board -> Square -> Either String (S.Set Move)
+getValidSimpleMoves currentPlayerColor board src@(Square _ srcRank) = do
   (Piece srcPieceColor srcPieceType) <- maybeToEither "No piece at specified location" $ getPiece board src
   when (srcPieceColor /= currentPlayerColor) $ Left "Can't move oponnent's piece"
+
   let validMoves = case srcPieceType of
         Pawn -> pawnValidMoves
         Knight -> knightValidMoves
@@ -157,26 +216,10 @@ getValidMoves gameOrBoard src@(Square _ srcRank) = do
         Rook -> rookValidMoves
         Queen -> queenValidMoves
         King -> kingValidMoves
-  return $ S.filter (not . doesMovePutOwnKingInCheck) validMoves
+  return validMoves
   where
-    board :: Board
-    board = case gameOrBoard of
-      Left game -> getBoard game
-      Right (_, b) -> b
-
-    currentPlayerColor :: Color
-    currentPlayerColor = case gameOrBoard of
-      Left game -> getCurrentPlayerColor game
-      Right (c, _) -> c
-
     mkMove :: MoveType -> Square -> Move
     mkMove moveType dstSquare = Move src dstSquare moveType
-
-    kingsSquare :: Square
-    kingsSquare = findKing currentPlayerColor board
-
-    doesMovePutOwnKingInCheck :: Move -> Bool
-    doesMovePutOwnKingInCheck move = isSquareUnderAttackBy currentPlayerColor (fromEither $ performMoveOnBoard board move) kingsSquare
 
     bishopValidMoves :: S.Set Move
     bishopValidMoves = mkMove RegularMove `S.map` getDiagonallyAccessibleSquares currentPlayerColor board src
@@ -194,7 +237,6 @@ getValidMoves gameOrBoard src@(Square _ srcRank) = do
 
     kingValidMoves :: S.Set Move
     kingValidMoves =
-      -- TODO: Allow castling! Requires `game`, `board` is not enough for it.
       let getKingsMoves kingsSrcSquare =
             (S.fromList . (mkMove RegularMove <$>) . mapMaybe ($ kingsSrcSquare))
               [ squareUp,
@@ -259,9 +301,7 @@ getValidMoves gameOrBoard src@(Square _ srcRank) = do
         registerAsAttack :: Square -> Maybe Move
         registerAsAttack dstSquare
           | doesSquareContainOpponentsPiece currentPlayerColor board dstSquare = return $ mkMove RegularMove dstSquare
-          | otherwise = case gameOrBoard of
-              Left game | isMoveEnPassant game dstSquare -> return $ mkMove EnPassant dstSquare
-              _ -> Nothing
+          | otherwise = Nothing
 
         detectAndLabelPawnPromotionMoves :: [Move] -> [Move]
         detectAndLabelPawnPromotionMoves = concatMap detectAndLabelPawnPromotionMove
@@ -284,24 +324,6 @@ oppositeColor Black = White
 
 getMoveDstSquare :: Move -> Square
 getMoveDstSquare (Move _ dstSquare _) = dstSquare
-
-isSquareUnderAttackByCurrentPlayer :: Game -> Square -> Bool
-isSquareUnderAttackByCurrentPlayer game square =
-  any (isSquareUnderAttackByPiece square) currentPlayerPieces
-  where
-    (Board pieces) = getBoard game
-    currentPlayerPieces = filter (\(Piece c _, _) -> c == currentPlayerColor) pieces
-    currentPlayerColor = getCurrentPlayerColor game
-    getValidDstSquaresForPiece (Piece _ _, pieceSquare) = getMoveDstSquare `S.map` fromEither (getValidMoves game pieceSquare)
-    isSquareUnderAttackByPiece sq piece = sq `S.member` getValidDstSquaresForPiece piece
-
--- TODO: I can't implement this one because I need Game to find valid moves and determine if attack is happening via getValidMoves,
---   but I can't do that since I don't know the next move, it is in the future!
---   I need a way to find all valid moves but without the special moves (en passant, castling) that require history.
---   Also, do I include or exclude attack that expose their own king? If attacking enemy king, then it is ok to expose own king.
---   But if not attacking enemy king, then it is not ok to expose your own king.
-isSquareUnderAttackBy :: Color -> Board -> Square -> Bool
-isSquareUnderAttackBy = error "TODO"
 
 fromEither :: Either a b -> b
 fromEither (Right x) = x
