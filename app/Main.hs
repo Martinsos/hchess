@@ -151,6 +151,13 @@ makeValidMove game moveOrder = do
 -- TODO: Rename "valid" to "possible" and "validAndSafe" to "valid"? What I am trying to do is find a name
 --   for moves that are valid but might expose the king to check, and then also find a name for moves
 --   that are valid but also don't expose the king to a check.
+--   Or maybe I should drop the idea of having two names for this stuff and just go with "valid" moves,
+--   which are moves that are both ok and don't put king in danger? getValidAndSafeMoves doesn't do much
+--   at the moment anyway, I could just move its logic into getValidMoves? I can define helper function
+--   that filter outs moves that endanger king, and just call that in the getValidMoves and there we go.
+--   Ah but that is an issue because I have helper functions that look for valid but unsafe moves so how
+--   do I call them? Maybe this will be a bit easier once I extract it into a separate module.
+--   Maybe "valid" vs "potentially valid"?
 
 getValidAndSafeMoves :: Game -> Square -> Either String (S.Set Move)
 getValidAndSafeMoves game srcSquare = do
@@ -185,15 +192,15 @@ getValidMoves game srcSquare = do
 
     pawnValidSpecialMoves =
       (S.fromList . catMaybes)
-        [ squareFwd srcSquare >>= squareRight >>= registerAsEnPassant,
-          squareFwd srcSquare >>= squareLeft >>= registerAsEnPassant
+        [ squareFwd srcSquare >>= squareRight >>= makeAnEnPassantMove,
+          squareFwd srcSquare >>= squareLeft >>= makeAnEnPassantMove
         ]
       where
         -- TODO: Duplication.
         squareFwd = squareForward currentPlayerColor
 
-        registerAsEnPassant :: Square -> Maybe Move
-        registerAsEnPassant dstSquare
+        makeAnEnPassantMove :: Square -> Maybe Move
+        makeAnEnPassantMove dstSquare
           | isMoveEnPassant game dstSquare = return $ mkMove EnPassant dstSquare
           | otherwise = Nothing
 
@@ -330,6 +337,9 @@ fromEither (Right x) = x
 fromEither (Left _) = error "Encountered Left, but expected Right"
 
 -- | For a given destination square, determine if landing a pawn on that square would be en passant move.
+-- We assume that move is valid, in a sense that there is such pawn, owned by the player that currently has turn,
+-- that can be moved to this square.
+-- TODO: This feels pretty much like a helper function, maybe move it somewhere to make it less global?
 isMoveEnPassant :: Game -> Square -> Bool
 isMoveEnPassant (Game []) _ = False
 isMoveEnPassant game@(Game ((Move lastMoveSrcSquare@(Square _ lastMoveSrcSquareRank) lastMoveDstSquare _) : _)) dstSquare =
@@ -408,11 +418,11 @@ maybeToEither :: e -> Maybe a -> Either e a
 maybeToEither e Nothing = Left e
 maybeToEither _ (Just a) = Right a
 
-safeSucc :: (Bounded a, Eq a) => a -> Maybe a
-safeSucc a = if a == maxBound then Nothing else Just a
+safeSucc :: (Bounded a, Eq a, Enum a) => a -> Maybe a
+safeSucc a = if a == maxBound then Nothing else Just $ succ a
 
-safePred :: (Bounded a, Eq a) => a -> Maybe a
-safePred a = if a == minBound then Nothing else Just a
+safePred :: (Bounded a, Eq a, Enum a) => a -> Maybe a
+safePred a = if a == minBound then Nothing else Just $ pred a
 
 squareUp :: Square -> Maybe Square
 squareUp (Square f r) = (f `Square`) <$> safeSucc r
