@@ -84,10 +84,42 @@ initialBoard =
     capitalPiecesOrder = [Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook]
 
 getBoard :: Game -> Board
-getBoard (Game moves) = foldl' (\board move -> fromEither $ performMoveOnBoard board move) initialBoard moves
+getBoard (Game moves) = foldl' (\board move -> fromEither $ performValidMoveOnBoard board move) initialBoard $ reverse moves
 
-isGameOver :: Game -> GameResult
-isGameOver game = error "TODO"
+checkIfGameOver :: Game -> Maybe GameResult
+checkIfGameOver game
+  | playerHasNoValidAndSafeMoves currentPlayerColor =
+      if isPlayerInCheck currentPlayerColor board
+        then Just $ Victory $ oppositeColor currentPlayerColor
+        else Just Draw
+  | noHappeningsIn50Moves = Just Draw
+  | insufficientMaterial = Just Draw
+  | otherwise = Nothing
+  where
+    (board, currentPlayerColor) = (getBoard game, getCurrentPlayerColor game)
+
+    playerHasNoValidAndSafeMoves :: Color -> Bool
+    playerHasNoValidAndSafeMoves playerColor =
+      null (mconcat $ map (fromEither . getValidAndSafeMoves game) (squaresWithPiecesOfColor playerColor))
+
+    squaresWithPiecesOfColor :: Color -> [Square]
+    squaresWithPiecesOfColor color =
+      let (Board pieces) = board in snd <$> filter (\((Piece c _), _) -> c == color) pieces
+
+    -- No piece has been captured and no pawn has been moved with a period of 50 moves.
+    noHappeningsIn50Moves :: Bool
+    noHappeningsIn50Moves = error "TODO"
+
+    --  Neither players has enough pieces to deliver checkmate. Game is a draw.
+    --  Possible cases:
+    --    King vs king with no other pieces.
+    --    King and bishop vs king.
+    --    King and knight vs king.
+    --    King and bishop vs king and bishop of the same coloured square.
+    --  This is not so simple, there are other ways to define if it is insufficient material,
+    --  and some are better while some are worse, and all of them are a bit imprecise from what I got.
+    insufficientMaterial :: Bool
+    insufficientMaterial = error "TODO"
 
 isPlayerInCheck :: Color -> Board -> Bool
 isPlayerInCheck currentPlayerColor board@(Board pieces) = any isKingUnderAttackByPiece oponnentPieces
@@ -100,14 +132,15 @@ isPlayerInCheck currentPlayerColor board@(Board pieces) = any isKingUnderAttackB
 
 -- | TODO: What if game is done? Do we check that here and in that case
 --   don't allow performing the move? Or we don't care about that here?
+--   I think we do that outside of here, and don't care about it here.
 performMove :: Game -> MoveOrder -> Either String Game
 performMove game@(Game moves) moveOrder = do
   validMove <- makeValidMove game moveOrder
   return $ Game $ validMove : moves
 
 -- | Performs a given move on the board, while assuming it is valid.
-performMoveOnBoard :: Board -> Move -> Either String Board
-performMoveOnBoard board move =
+performValidMoveOnBoard :: Board -> Move -> Either String Board
+performValidMoveOnBoard board move =
   -- TODO:
   -- 2. Move the piece from src square to dst square.
   -- 3. Remove opponents piece if it is present on the dst square.
@@ -167,7 +200,7 @@ getValidAndSafeMoves game srcSquare = do
     (board, currentPlayerColor) = (getBoard game, getCurrentPlayerColor game)
 
     doesMovePutOwnKingInCheck :: Move -> Bool
-    doesMovePutOwnKingInCheck move = isPlayerInCheck currentPlayerColor (fromEither $ performMoveOnBoard board move)
+    doesMovePutOwnKingInCheck move = isPlayerInCheck currentPlayerColor (fromEither $ performValidMoveOnBoard board move)
 
 -- NOTE: This returns all moves including for castling and en passant. It doesn't check if a move exposes its own king to a check.
 getValidMoves :: Game -> Square -> Either String (S.Set Move)
