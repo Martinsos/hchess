@@ -31,11 +31,20 @@ data MoveOrder = MoveOrder Square Square | PawnPromotionOrder Square Square Piec
 data Move = Move Square Square MoveType
   deriving (Eq, Ord)
 
+-- TODO: Consider embedding more info into these, to make it easier to analyze them
+--   standalone to some degree, without having to calculate the whole board.
+--   This might be especially useful for checking conditions for game over.
 data MoveType = RegularMove | EnPassant | KingsideCastling | QueensideCastling | PawnPromotion PieceType
   deriving (Eq, Show, Ord)
 
 data Square = Square File Rank
   deriving (Eq, Ord)
+
+squareFile :: Square -> File
+squareFile (Square file _) = file
+
+squareRank :: Square -> Rank
+squareRank (Square _ rank) = rank
 
 data File = FA | FB | FC | FD | FE | FF | FG | FH
   deriving (Eq, Ord, Enum, Bounded)
@@ -84,7 +93,7 @@ initialBoard =
     capitalPiecesOrder = [Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook]
 
 getBoard :: Game -> Board
-getBoard (Game moves) = foldl' (\board move -> fromEither $ performValidMoveOnBoard board move) initialBoard $ reverse moves
+getBoard (Game moves) = foldl' performValidMoveOnBoard initialBoard $ reverse moves
 
 checkIfGameOver :: Game -> Maybe GameResult
 checkIfGameOver game
@@ -108,7 +117,7 @@ checkIfGameOver game
 
     -- No piece has been captured and no pawn has been moved with a period of 50 moves.
     noHappeningsIn50Moves :: Bool
-    noHappeningsIn50Moves = error "TODO"
+    noHappeningsIn50Moves = False -- TODO: Implement!
 
     --  Neither players has enough pieces to deliver checkmate. Game is a draw.
     --  Possible cases:
@@ -119,7 +128,7 @@ checkIfGameOver game
     --  This is not so simple, there are other ways to define if it is insufficient material,
     --  and some are better while some are worse, and all of them are a bit imprecise from what I got.
     insufficientMaterial :: Bool
-    insufficientMaterial = error "TODO"
+    insufficientMaterial = False -- TODO: Implement!
 
 isPlayerInCheck :: Color -> Board -> Bool
 isPlayerInCheck currentPlayerColor board@(Board pieces) = any isKingUnderAttackByPiece oponnentPieces
@@ -128,7 +137,8 @@ isPlayerInCheck currentPlayerColor board@(Board pieces) = any isKingUnderAttackB
     oponnentColor = oppositeColor currentPlayerColor
     oponnentPieces = filter (\(Piece c _, _) -> c == oponnentColor) pieces
     isKingUnderAttackByPiece piece = kingsSquare `S.member` getValidDstSquaresForPiece piece
-    getValidDstSquaresForPiece (Piece _ _, pieceSquare) = getMoveDstSquare `S.map` fromEither (getValidSimpleMoves oponnentColor board pieceSquare)
+    getValidDstSquaresForPiece (Piece _ _, pieceSquare) =
+      getMoveDstSquare `S.map` fromEither (getValidSimpleMoves oponnentColor board pieceSquare)
 
 -- | TODO: What if game is done? Do we check that here and in that case
 --   don't allow performing the move? Or we don't care about that here?
@@ -139,13 +149,33 @@ performMove game@(Game moves) moveOrder = do
   return $ Game $ validMove : moves
 
 -- | Performs a given move on the board, while assuming it is valid.
-performValidMoveOnBoard :: Board -> Move -> Either String Board
-performValidMoveOnBoard board move =
-  -- TODO:
-  -- 2. Move the piece from src square to dst square.
-  -- 3. Remove opponents piece if it is present on the dst square.
-  -- 4. Handle special cases (en passant, castlings, pawn promotion).
-  error "TODO"
+performValidMoveOnBoard :: Board -> Move -> Board
+performValidMoveOnBoard board (Move src dst moveType) =
+  case moveType of
+    RegularMove -> movePieceFromTo src dst . removeAnyPieceAt dst $ board
+    EnPassant -> movePieceFromTo src dst . removeAnyPieceAt (Square (squareFile dst) (squareRank src)) $ board
+    KingsideCastling ->
+      let (rookSrcSquare, rookDstSquare) = (Square FH $ squareRank src, Square FF $ squareRank src)
+       in movePieceFromTo src dst . movePieceFromTo rookSrcSquare rookDstSquare $ board
+    QueensideCastling ->
+      let (rookSrcSquare, rookDstSquare) = (Square FA $ squareRank src, Square FD $ squareRank src)
+       in movePieceFromTo src dst . movePieceFromTo rookSrcSquare rookDstSquare $ board
+    PawnPromotion newPieceType ->
+      let (Piece color _) = fromJust $ getPieceAt src board
+       in putPieceAt dst (Piece color newPieceType) . removeAnyPieceAt src $ board
+  where
+    movePieceFromTo :: Square -> Square -> Board -> Board
+    movePieceFromTo src' dst' (Board pieces) =
+      Board $ (fmap . fmap) (\sq -> if sq == src' then dst' else sq) pieces
+
+    removeAnyPieceAt :: Square -> Board -> Board
+    removeAnyPieceAt square (Board pieces) = Board $ filter ((/= square) . snd) pieces
+
+    putPieceAt :: Square -> Piece -> Board -> Board
+    putPieceAt sq piece (Board pieces) = Board $ (piece, sq) : pieces
+
+    getPieceAt :: Square -> Board -> Maybe Piece
+    getPieceAt sq (Board pieces) = fst <$> find ((== sq) . snd) pieces
 
 -- TODO: Very often I am passing around relatively boring stuff like board, currentPlayerColor, and game.
 --   Maybe I should make a Reader monad that just contains Game in its Reader, since from Game we can then access all of this info?
@@ -160,6 +190,7 @@ performValidMoveOnBoard board move =
 --   It would first call getValidMoves, confirm that given move (which is (Square, Squrae)) is indeed one of those valid moves, and then it would create the Move from it.
 --   If we have this nice system we can even add more info to each move, like is it attack, which piece is it moving, which player, ... -> then they are very standalone which is nice.
 --   Or, have this function accept more elaborate type, smth like data MoveOrder = RegularMoveOrder Square Square | PawnPromotionOrder Piece.
+--
 -- | Given current state of the game and a move order, returns an actual move that would match that move order, while ensuring it is valid.
 -- If it is not a valid move, error message is returned.
 makeValidMove :: Game -> MoveOrder -> Either String Move
@@ -241,7 +272,21 @@ getValidMoves game srcSquare = do
         mkMove :: MoveType -> Square -> Move
         mkMove moveType dstSquare = Move srcSquare dstSquare moveType
 
-    kingValidSpecialMoves = error "TODO: castling"
+    kingValidSpecialMoves =
+      -- TODO:
+      --  1. Check that king was never moved.
+      --  2. Check that rook has never moved.
+      --  3. Check that square between the kind and rook are vacant.
+      --  4. Neither king, rook, or any square in between them is under attack.
+      --  We need to check this for both kingside castling and for queenside castling.
+      --  To check if king has never moved, it is best to just check if there was ever a move that had its initial square as src.
+      --  To check if rook has never moved, we can do this same check, although it might have in theory been moved by castling,
+      --    but in that case the check with "did king move" will fail first anyway.
+      --  Checking that squares in between are vacant should be trivial.
+      --  Checking that none of the squares is under attack: I should take a look at `isPlayerInCheck` function,
+      --  refactor it into more general `isSquareUnderAttack` function, and then use that function here plus
+      --  also redefine isPlayerInCheck via it.
+      error "TODO: castling"
 
 -- NOTE: This returns all moves except for castling and en passant. Also, it doesn't check if a move exposes its own king to a check.
 getValidSimpleMoves :: Color -> Board -> Square -> Either String (S.Set Move)
