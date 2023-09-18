@@ -222,6 +222,8 @@ makeValidMove game moveOrder = do
 --   Ah but that is an issue because I have helper functions that look for valid but unsafe moves so how
 --   do I call them? Maybe this will be a bit easier once I extract it into a separate module.
 --   Maybe "valid" vs "potentially valid"?
+--   Yeah, I should probably just call "validAndSafe" move "valid" moves, drop the concept of unsafe ones,
+--   and push logic from `getValidAndSafeMoves` into `getValidMoves`.
 
 getValidAndSafeMoves :: Game -> Square -> Either String (S.Set Move)
 getValidAndSafeMoves game srcSquare = do
