@@ -24,6 +24,20 @@ data PieceType = Pawn | Knight | Bishop | Rook | Queen | King
 data Piece = Piece Color PieceType
   deriving (Eq, Show)
 
+-- TODO: Consider refactoring MoveOrder and Move to be better. Make them more similar? Have just Move?
+--   MoveOrder seems maybe a bit too much like special case.
+--   We could at least make it data MoveOrder = MoverOrder Square Square MoveOrderType, so it is more similar to Move.
+--   But then can we have just Move? But we did have reasons for having just MoveOrder.
+--   What if we had data Move = RegularMove Square Square | EnPassant Square | KingsideCastling | QueensideCastling | PawnPromotion Square PieceType
+--     and then also data MoveOrder = RegularMoveOrder Square Square | PawnPromotionOrder Square PieceType ? (if we do need MoveOrder).
+--   ...
+--   Ok, so thinking more about this and looking at the code below, I think we might really not need MoveOrder.
+--   I was assuming that from somewhere outside (the player) we will have these move orders coming in these raw shape.
+--   But what is going to be more natural is for the player/game to ask for valid moves, and then pick one of those.
+--   And for that, we need only Move! So I don't think we need MoveOrder at all -> I created it only because I was trying to guess
+--   what will be needed and imagined it is needed, but it seems to me that was incorrect now and it is not needed at all.
+--   Which is great!
+
 -- | Order, by user, describing a move they would like to make.
 data MoveOrder = MoveOrder Square Square | PawnPromotionOrder Square Square PieceType
 
@@ -40,6 +54,7 @@ data MoveType = RegularMove | EnPassant | KingsideCastling | QueensideCastling |
 data Square = Square File Rank
   deriving (Eq, Ord)
 
+-- TODO: Just make Square a record instead of having these functions here?
 squareFile :: Square -> File
 squareFile (Square file _) = file
 
@@ -140,6 +155,8 @@ isPlayerInCheck currentPlayerColor board@(Board pieces) = any isKingUnderAttackB
     getValidDstSquaresForPiece (Piece _ _, pieceSquare) =
       getMoveDstSquare `S.map` fromEither (getValidSimpleMoves oponnentColor board pieceSquare)
 
+-- TODO: Is String here error? Then use type Error = String.
+
 -- | TODO: What if game is done? Do we check that here and in that case
 --   don't allow performing the move? Or we don't care about that here?
 --   I think we do that outside of here, and don't care about it here.
@@ -185,6 +202,7 @@ performValidMoveOnBoard board (Move src dst moveType) =
 --   So we would have PawnForward, PawnTwoForward, PawnEnPassant, KingsideCastlin, ... .
 --   We could also have each Move contain a previous move, therefore making each move a standalone thing that can be observed on its own.
 --   But maybe that is just too much complication?
+--   data Game = Game { lastMove :: Move, gameBeforeLastMove :: Maybe Game }
 
 -- | TODO: Consider moving Move to the separate module and then creating a smart constructor for it that ensures only valid moves can be created.
 --   It would first call getValidMoves, confirm that given move (which is (Square, Squrae)) is indeed one of those valid moves, and then it would create the Move from it.
@@ -458,6 +476,7 @@ getAccessibleSquaresInDirections :: Color -> [Square -> Maybe Square] -> Board -
 getAccessibleSquaresInDirections color nextSquareInDirectionGetters board startSquare =
   mconcat $ (\f -> getAccessibleSquaresInDirection color f board startSquare) <$> nextSquareInDirectionGetters
 
+-- TODO: Define (in comment) what accessible means (and what this function does).
 getAccessibleSquaresInDirection :: Color -> (Square -> Maybe Square) -> Board -> Square -> S.Set Square
 getAccessibleSquaresInDirection color getNextSquareInDirection board startSquare =
   case getNextSquareInDirection startSquare of
