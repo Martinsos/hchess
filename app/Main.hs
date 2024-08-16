@@ -21,37 +21,22 @@ data Color = White | Black
 data PieceType = Pawn | Knight | Bishop | Rook | Queen | King
   deriving (Eq, Enum, Ord)
 
-data Piece = Piece Color PieceType
+data Piece = Piece !Color !PieceType
   deriving (Eq, Show)
 
--- TODO: Consider refactoring MoveOrder and Move to be better. Make them more similar? Have just Move?
---   MoveOrder seems maybe a bit too much like special case.
---   We could at least make it data MoveOrder = MoverOrder Square Square MoveOrderType, so it is more similar to Move.
---   But then can we have just Move? But we did have reasons for having just MoveOrder.
---   What if we had data Move = RegularMove Square Square | EnPassant Square | KingsideCastling | QueensideCastling | PawnPromotion Square PieceType
---     and then also data MoveOrder = RegularMoveOrder Square Square | PawnPromotionOrder Square PieceType ? (if we do need MoveOrder).
---   ...
---   Ok, so thinking more about this and looking at the code below, I think we might really not need MoveOrder.
---   I was assuming that from somewhere outside (the player) we will have these move orders coming in these raw shape.
---   But what is going to be more natural is for the player/game to ask for valid moves, and then pick one of those.
---   And for that, we need only Move! So I don't think we need MoveOrder at all -> I created it only because I was trying to guess
---   what will be needed and imagined it is needed, but it seems to me that was incorrect now and it is not needed at all.
---   Which is great!
-
--- | Order, by user, describing a move they would like to make.
-data MoveOrder = MoveOrder Square Square | PawnPromotionOrder Square Square PieceType
-
 -- | Actual valid move that can be performed, containing some additional information about its context.
-data Move = Move Square Square MoveType
+data Move = Move !Square !Square !MoveType
   deriving (Eq, Ord)
 
--- TODO: Consider embedding more info into these, to make it easier to analyze them
+-- TODO: What if we had data Move = RegularMove Square Square | EnPassant Square | KingsideCastling | QueensideCastling | PawnPromotion Square PieceType ?
+--   Or, consider embedding more info into these, to make it easier to analyze them
 --   standalone to some degree, without having to calculate the whole board.
 --   This might be especially useful for checking conditions for game over.
+--
 data MoveType = RegularMove | EnPassant | KingsideCastling | QueensideCastling | PawnPromotion PieceType
   deriving (Eq, Show, Ord)
 
-data Square = Square File Rank
+data Square = Square !File !Rank
   deriving (Eq, Ord)
 
 -- TODO: Just make Square a record instead of having these functions here?
@@ -70,7 +55,7 @@ data Rank = R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8
 data Board = Board [(Piece, Square)]
   deriving (Eq, Show)
 
-data GameResult = Victory Color | Draw
+data GameResult = Victory !Color | Draw
 
 instance Show Move where
   show (Move from to _) = show from ++ "-" ++ show to
@@ -128,7 +113,7 @@ checkIfGameOver game
 
     squaresWithPiecesOfColor :: Color -> [Square]
     squaresWithPiecesOfColor color =
-      let (Board pieces) = board in snd <$> filter (\((Piece c _), _) -> c == color) pieces
+      let (Board pieces) = board in snd <$> filter (\(Piece c _, _) -> c == color) pieces
 
     -- No piece has been captured and no pawn has been moved with a period of 50 moves.
     noHappeningsIn50Moves :: Bool
@@ -160,10 +145,8 @@ isPlayerInCheck currentPlayerColor board@(Board pieces) = any isKingUnderAttackB
 -- | TODO: What if game is done? Do we check that here and in that case
 --   don't allow performing the move? Or we don't care about that here?
 --   I think we do that outside of here, and don't care about it here.
-performMove :: Game -> MoveOrder -> Either String Game
-performMove game@(Game moves) moveOrder = do
-  validMove <- makeValidMove game moveOrder
-  return $ Game $ validMove : moves
+performMove :: Game -> Move -> Game
+performMove (Game moves) move = Game $ move : moves
 
 -- | Performs a given move on the board, while assuming it is valid.
 performValidMoveOnBoard :: Board -> Move -> Board
@@ -207,26 +190,6 @@ performValidMoveOnBoard board (Move src dst moveType) =
 -- | TODO: Consider moving Move to the separate module and then creating a smart constructor for it that ensures only valid moves can be created.
 --   It would first call getValidMoves, confirm that given move (which is (Square, Squrae)) is indeed one of those valid moves, and then it would create the Move from it.
 --   If we have this nice system we can even add more info to each move, like is it attack, which piece is it moving, which player, ... -> then they are very standalone which is nice.
---   Or, have this function accept more elaborate type, smth like data MoveOrder = RegularMoveOrder Square Square | PawnPromotionOrder Piece.
---
--- | Given current state of the game and a move order, returns an actual move that would match that move order, while ensuring it is valid.
--- If it is not a valid move, error message is returned.
-makeValidMove :: Game -> MoveOrder -> Either String Move
-makeValidMove game moveOrder = do
-  validMoves <- getValidAndSafeMoves game $ fst $ getMoveOrderSquares moveOrder
-  case find (doesMoveOrderEqualMove moveOrder) validMoves of
-    Just validMove -> Right validMove
-    Nothing -> Left "Can't move there"
-  where
-    -- TODO: move more global?
-    getMoveOrderSquares (MoveOrder src dst) = (src, dst)
-    getMoveOrderSquares (PawnPromotionOrder src dst _) = (src, dst)
-
-    -- TODO: move more global?
-    doesMoveOrderEqualMove moveOrder' (Move srcSquare dstSquare moveType) =
-      case moveOrder' of
-        MoveOrder srcSquare' dstSquare' -> srcSquare == srcSquare' && dstSquare == dstSquare'
-        PawnPromotionOrder srcSquare' dstSquare' newPieceType' -> srcSquare == srcSquare' && dstSquare == dstSquare' && moveType == PawnPromotion newPieceType'
 
 -- TODO: This function is huge, take it out into separate module and move complex functions in @where@ to standalone functions.
 
@@ -251,7 +214,7 @@ getValidAndSafeMoves game srcSquare = do
     (board, currentPlayerColor) = (getBoard game, getCurrentPlayerColor game)
 
     doesMovePutOwnKingInCheck :: Move -> Bool
-    doesMovePutOwnKingInCheck move = isPlayerInCheck currentPlayerColor (fromEither $ performValidMoveOnBoard board move)
+    doesMovePutOwnKingInCheck move = isPlayerInCheck currentPlayerColor $ performValidMoveOnBoard board move
 
 -- NOTE: This returns all moves including for castling and en passant. It doesn't check if a move exposes its own king to a check.
 getValidMoves :: Game -> Square -> Either String (S.Set Move)
