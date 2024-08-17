@@ -1,10 +1,19 @@
 module Main where
 
+import Data.Either (fromRight)
 import Data.List (find)
 import qualified Data.Set as S
 import HChess.Board (Board (..), File (..), Rank (..), Square (..))
-import HChess.Game (getBoard, getValidAndSafeMoves, newGame, performMove)
+import HChess.Game
+  ( MoveOrder (..),
+    getBoard,
+    getValidAndSafeMoves,
+    newGame,
+    performMoveOrder,
+  )
 import HChess.Piece (Piece (..))
+
+-- TODO: Write tests.
 
 main :: IO ()
 main = do
@@ -20,7 +29,9 @@ main = do
   putStrLn "\nValid moves for the king's pawn:"
   print kingsPawnMoves
 
-  let game' = performMove game (head kingsPawnMoves)
+  let game' =
+        fromRight (error "invalid move") $
+          performMoveOrder game $ MoveOrder (Square FE R2) (Square FE R4)
 
   putStrLn "\nBoard:"
   putStrLn $ unlines $ showBoard $ getBoard game'

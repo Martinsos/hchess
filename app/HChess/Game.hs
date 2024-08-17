@@ -1,8 +1,10 @@
 module HChess.Game
-  ( newGame,
+  ( Game,
+    MoveOrder (..),
+    newGame,
     getBoard,
     getValidAndSafeMoves,
-    performMove,
+    performMoveOrder,
   )
 where
 
@@ -35,13 +37,16 @@ import HChess.Utils (fromEither, maybeToEither, validate)
 
 -- TODO: Split this file further, there is too much logic in it.
 
+-- | NOTE: We assume that moves in @Game@ are valid, since the functions
+-- for updating Game with moves that we export from this module ensure
+-- those moves are valid.
 newtype Game = Game [Move]
   deriving (Eq)
 
 -- | Actual valid move that can be performed, containing some additional
 -- information about its context.
--- TODO: What if we had data Move = RegularMove Square Square | EnPassant Square | KingsideCastling | QueensideCastling | PawnPromotion Square PieceType ?
---   Or, consider embedding more info into these, to make it easier to analyze them
+-- TODO: What if we had data Move = RegularMove Square Square | EnPassant Square | KingsideCastling | QueensideCastling | PawnPromotion Square Square PieceType , so it has less chance to be invalid?
+--   Additionaly, consider embedding more info into these, to make it easier to analyze them
 --   standalone to some degree, without having to calculate the whole board.
 --   This might be especially useful for checking conditions for game over.
 data Move = Move !Square !Square !MoveType
@@ -58,6 +63,9 @@ data MoveType
   | PawnPromotion !PieceType
   deriving (Eq, Show, Ord)
 
+-- | Order, by user, describing a move they would like to make.
+data MoveOrder = MoveOrder Square Square | PawnPromotionOrder Square Square PieceType
+
 data GameResult = Victory !Color | Draw
 
 getMoveDstSquare :: Move -> Square
@@ -69,11 +77,6 @@ getCurrentPlayerColor (Game moves) = if even (length moves) then White else Blac
 newGame :: Game
 newGame = Game []
 
--- | TODO: Here we assume that Game is valid (moves are valid).
--- To ensure this as much as we can, we should ensure the only way to get to moves is to
--- obtain valid moves at certain point. Maybe even produce these moves in such way
--- that they contain reference to current game, and therefore you can only add them to the
--- game if they contain reference to it?
 getBoard :: Game -> Board
 getBoard (Game moves) = foldl' performValidMoveOnBoard initialBoard $ reverse moves
 
@@ -122,14 +125,15 @@ isPlayerInCheck currentPlayerColor board@(Board pieces) = any isKingUnderAttackB
     getValidDstSquaresForPiece (Piece _ _, pieceSquare) =
       getMoveDstSquare `S.map` fromEither (getValidSimpleMoves oponnentColor board pieceSquare)
 
--- TODO: Is String here error? Then use type Error = String.
+type InvalidMoveError = String
 
 -- | TODO: What if game is done? Do we check that here and in that case
 --   don't allow performing the move? Or we don't care about that here?
 --   I think we do that outside of here, and don't care about it here.
---   TODO: Check that move is valid? Otherwise don't allow adding it to the Game?
-performMove :: Game -> Move -> Game
-performMove (Game moves) move = Game $ move : moves
+performMoveOrder :: Game -> MoveOrder -> Either InvalidMoveError Game
+performMoveOrder game@(Game moves) moveOrder = do
+  validMove <- moveOrderToValidMove game moveOrder
+  return $ Game $ validMove : moves
 
 -- | Performs a given move on the board, while assuming it is valid.
 performValidMoveOnBoard :: Board -> Move -> Board
@@ -164,15 +168,22 @@ performValidMoveOnBoard board (Move src dst moveType) =
 --   Maybe I should make a Reader monad that just contains Game in its Reader, since from Game we can then access all of this info?
 --   And it would reduce clutter a bit? For functions that are happening in the context of current state of the game.
 
--- TODO: A bit wild idea: Have encoding for special kinds of moves in data, to ensure when we have them, they are valid.
---   So we would have PawnForward, PawnTwoForward, PawnEnPassant, KingsideCastlin, ... .
---   We could also have each Move contain a previous move, therefore making each move a standalone thing that can be observed on its own.
---   But maybe that is just too much complication?
---   data Game = Game { lastMove :: Move, gameBeforeLastMove :: Maybe Game }
+-- | Given current state of the game and a move order, returns an actual move that would match that
+-- move order, while ensuring it is valid. If it is not a valid move, error message is returned.
+moveOrderToValidMove :: Game -> MoveOrder -> Either InvalidMoveError Move
+moveOrderToValidMove game moveOrder = do
+  validMoves <- getValidAndSafeMoves game $ fst $ getMoveOrderSquares moveOrder
+  case find (doesMoveOrderEqualMove moveOrder) validMoves of
+    Just validMove -> Right validMove
+    Nothing -> Left "Invalid move."
+  where
+    getMoveOrderSquares (MoveOrder src dst) = (src, dst)
+    getMoveOrderSquares (PawnPromotionOrder src dst _) = (src, dst)
 
--- | TODO: Consider moving Move to the separate module and then creating a smart constructor for it that ensures only valid moves can be created.
---   It would first call getValidMoves, confirm that given move (which is (Square, Squrae)) is indeed one of those valid moves, and then it would create the Move from it.
---   If we have this nice system we can even add more info to each move, like is it attack, which piece is it moving, which player, ... -> then they are very standalone which is nice.
+    doesMoveOrderEqualMove moveOrder' (Move srcSquare dstSquare moveType) =
+      case moveOrder' of
+        MoveOrder srcSquare' dstSquare' -> srcSquare == srcSquare' && dstSquare == dstSquare'
+        PawnPromotionOrder srcSquare' dstSquare' newPieceType' -> srcSquare == srcSquare' && dstSquare == dstSquare' && moveType == PawnPromotion newPieceType'
 
 -- TODO: This function is huge, take it out into separate module and move complex functions in @where@ to standalone functions.
 
