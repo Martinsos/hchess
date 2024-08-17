@@ -52,6 +52,38 @@ data Rank = R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8
 instance Show Rank where
   show = show . (+ 1) . fromEnum
 
+getPiece :: Board -> Square -> Maybe Piece
+getPiece (Board pieces) square = fst <$> find ((== square) . snd) pieces
+
+isSquareEmpty :: Board -> Square -> Bool
+isSquareEmpty board square = isNothing $ getPiece board square
+
+doesSquareContainOpponentsPiece :: Color -> Board -> Square -> Bool
+doesSquareContainOpponentsPiece currentPlayerColor board square =
+  case getPiece board square of
+    Just piece -> pieceColor piece /= currentPlayerColor
+    Nothing -> False
+
+squareUp :: Square -> Maybe Square
+squareUp (Square f r) = (f `Square`) <$> safeSucc r
+
+squareDown :: Square -> Maybe Square
+squareDown (Square f r) = (f `Square`) <$> safePred r
+
+squareRight :: Square -> Maybe Square
+squareRight (Square f r) = (`Square` r) <$> safeSucc f
+
+squareLeft :: Square -> Maybe Square
+squareLeft (Square f r) = (`Square` r) <$> safePred f
+
+squareForward :: Color -> Square -> Maybe Square
+squareForward White = squareUp
+squareForward Black = squareDown
+
+squareBackward :: Color -> Square -> Maybe Square
+squareBackward White = squareDown
+squareBackward Black = squareUp
+
 initialBoard :: Board
 initialBoard =
   Board $
@@ -106,34 +138,3 @@ onSameRank (Square _ r1) (Square _ r2) = r1 == r2
 
 onSameFile :: Square -> Square -> Bool
 onSameFile (Square f1 _) (Square f2 _) = f1 == f2
-
-getPiece :: Board -> Square -> Maybe Piece
-getPiece (Board pieces) square = fst <$> find ((== square) . snd) pieces
-
-isSquareEmpty :: Board -> Square -> Bool
-isSquareEmpty board square = isNothing $ getPiece board square
-
-doesSquareContainOpponentsPiece :: Color -> Board -> Square -> Bool
-doesSquareContainOpponentsPiece color board square = case getPiece board square of
-  Just piece -> pieceColor piece == color
-  Nothing -> False
-
-squareUp :: Square -> Maybe Square
-squareUp (Square f r) = (f `Square`) <$> safeSucc r
-
-squareDown :: Square -> Maybe Square
-squareDown (Square f r) = (f `Square`) <$> safePred r
-
-squareRight :: Square -> Maybe Square
-squareRight (Square f r) = (`Square` r) <$> safeSucc f
-
-squareLeft :: Square -> Maybe Square
-squareLeft (Square f r) = (`Square` r) <$> safePred f
-
-squareForward :: Color -> Square -> Maybe Square
-squareForward White = squareUp
-squareForward Black = squareDown
-
-squareBackward :: Color -> Square -> Maybe Square
-squareBackward White = squareDown
-squareBackward Black = squareUp

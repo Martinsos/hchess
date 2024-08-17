@@ -1,0 +1,50 @@
+module HChess.GameResult
+  ( GameResult (..),
+    checkIfGameOver,
+  )
+where
+
+import HChess.Board (Board (..), Square)
+import HChess.Check (isPlayerInCheck)
+import HChess.Color (Color, oppositeColor)
+import HChess.Game (Game, getBoard, getCurrentPlayerColor)
+import HChess.Piece (Piece (..))
+import HChess.Utils (fromEither)
+import HChess.ValidMoves (getValidAndSafeMoves)
+
+data GameResult = Victory !Color | Draw
+
+checkIfGameOver :: Game -> Maybe GameResult
+checkIfGameOver game
+  | playerHasNoValidAndSafeMoves currentPlayerColor =
+      if isPlayerInCheck currentPlayerColor board
+        then Just $ Victory $ oppositeColor currentPlayerColor
+        else Just Draw
+  | noHappeningsIn50Moves = Just Draw
+  | insufficientMaterial = Just Draw
+  | otherwise = Nothing
+  where
+    (board, currentPlayerColor) = (getBoard game, getCurrentPlayerColor game)
+
+    playerHasNoValidAndSafeMoves :: Color -> Bool
+    playerHasNoValidAndSafeMoves playerColor =
+      null (mconcat $ map (fromEither . getValidAndSafeMoves game) (squaresWithPiecesOfColor playerColor))
+
+    squaresWithPiecesOfColor :: Color -> [Square]
+    squaresWithPiecesOfColor color =
+      let (Board pieces) = board in snd <$> filter (\(Piece c _, _) -> c == color) pieces
+
+    -- No piece has been captured and no pawn has been moved with a period of 50 moves.
+    noHappeningsIn50Moves :: Bool
+    noHappeningsIn50Moves = False -- TODO: Implement!
+
+    --  Neither players has enough pieces to deliver checkmate. Game is a draw.
+    --  Possible cases:
+    --    King vs king with no other pieces.
+    --    King and bishop vs king.
+    --    King and knight vs king.
+    --    King and bishop vs king and bishop of the same coloured square.
+    --  This is not so simple, there are other ways to define if it is insufficient material,
+    --  and some are better while some are worse, and all of them are a bit imprecise from what I got.
+    insufficientMaterial :: Bool
+    insufficientMaterial = False -- TODO: Implement!
