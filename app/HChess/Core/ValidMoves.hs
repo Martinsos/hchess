@@ -6,9 +6,9 @@ where
 import Control.Monad (when)
 import Data.Maybe (catMaybes)
 import qualified Data.Set as S
-import HChess.Core.Board
+import HChess.Core.Board (getPiece)
+import HChess.Core.Board.Square
   ( Square (..),
-    getPiece,
     squareBackward,
     squareForward,
     squareLeft,

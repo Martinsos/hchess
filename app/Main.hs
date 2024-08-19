@@ -3,7 +3,7 @@ module Main where
 import Data.Either (fromRight)
 import Data.List (find)
 import qualified Data.Set as S
-import HChess.Core.Board (Board (..), File (..), Rank (..), Square (..))
+import HChess.Core.Board (Board, File (..), Rank (..), Square (..), boardPieces)
 import HChess.Core.Game (getBoard, newGame)
 import HChess.Core.MoveOrder (MoveOrder (MoveOrder), performMoveOrder)
 import HChess.Core.Piece (Piece (..))
@@ -34,7 +34,7 @@ main = do
   putStrLn $ unlines $ showBoard $ getBoard game'
 
 showBoard :: Board -> [String]
-showBoard (Board piecesOnBoard) = showRow <$> reverse [R1 .. R8]
+showBoard board = showRow <$> reverse [R1 .. R8]
   where
     showRow :: Rank -> String
     showRow rank = concat $ showSquare . (`Square` rank) <$> [FA .. FH]
@@ -43,4 +43,6 @@ showBoard (Board piecesOnBoard) = showRow <$> reverse [R1 .. R8]
     showSquare square =
       case find ((== square) . snd) piecesOnBoard of
         Nothing -> "-"
-        Just (Piece _color pieceType, _square) -> show pieceType
+        Just (piece, _square) -> show $ pieceType piece
+
+    piecesOnBoard = boardPieces board

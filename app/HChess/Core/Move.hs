@@ -8,7 +8,7 @@ where
 
 import Data.List (find)
 import Data.Maybe (fromJust)
-import HChess.Core.Board (Board (..), File (..), Square (..))
+import HChess.Core.Board (Board, File (..), Square (..), boardPieces, makeBoard)
 import HChess.Core.Piece (Piece (..), PieceType)
 
 -- | Actual valid move that can be performed, containing some additional
@@ -51,14 +51,15 @@ performValidMoveOnBoard board (Move src dst moveType) =
        in putPieceAt dst (Piece color newPieceType) . removeAnyPieceAt src $ board
   where
     movePieceFromTo :: Square -> Square -> Board -> Board
-    movePieceFromTo src' dst' (Board pieces) =
-      Board $ (fmap . fmap) (\sq -> if sq == src' then dst' else sq) pieces
+    movePieceFromTo src' dst' =
+      makeBoard . (fmap . fmap) (\sq -> if sq == src' then dst' else sq) . boardPieces
 
     removeAnyPieceAt :: Square -> Board -> Board
-    removeAnyPieceAt square (Board pieces) = Board $ filter ((/= square) . snd) pieces
+    removeAnyPieceAt square =
+      makeBoard . filter ((/= square) . snd) . boardPieces
 
     putPieceAt :: Square -> Piece -> Board -> Board
-    putPieceAt sq piece (Board pieces) = Board $ (piece, sq) : pieces
+    putPieceAt sq piece = makeBoard . ((piece, sq) :) . boardPieces
 
     getPieceAt :: Square -> Board -> Maybe Piece
-    getPieceAt sq (Board pieces) = fst <$> find ((== sq) . snd) pieces
+    getPieceAt sq = (fst <$>) . find ((== sq) . snd) . boardPieces

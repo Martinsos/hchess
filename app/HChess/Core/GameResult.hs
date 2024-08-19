@@ -4,7 +4,7 @@ module HChess.Core.GameResult
   )
 where
 
-import HChess.Core.Board (Board (..), Square)
+import HChess.Core.Board (Square, boardPieces)
 import HChess.Core.Check (isPlayerInCheck)
 import HChess.Core.Color (Color, oppositeColor)
 import HChess.Core.Game (Game, getBoard, getCurrentPlayerColor)
@@ -32,7 +32,7 @@ checkIfGameOver game
 
     squaresWithPiecesOfColor :: Color -> [Square]
     squaresWithPiecesOfColor color =
-      let (Board pieces) = board in snd <$> filter (\(Piece c _, _) -> c == color) pieces
+      snd <$> filter (\(Piece c _, _) -> c == color) (boardPieces board)
 
     -- No piece has been captured and no pawn has been moved with a period of 50 moves.
     noHappeningsIn50Moves :: Bool

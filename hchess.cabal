@@ -40,6 +40,10 @@ executable hchess
   -- Modules included in this executable, other than Main.
   other-modules:
     HChess.Core.Board
+    HChess.Core.Board.File
+    HChess.Core.Board.Movement
+    HChess.Core.Board.Rank
+    HChess.Core.Board.Square
     HChess.Core.Check
     HChess.Core.Color
     HChess.Core.Common
@@ -49,9 +53,9 @@ executable hchess
     HChess.Core.Move
     HChess.Core.MoveOrder
     HChess.Core.Piece
-    HChess.Utils
     HChess.Core.ValidMoves
     HChess.Core.ValidMoves.Simple
+    HChess.Utils
 
   build-depends:    base ^>=4.14.3.0,
                     containers ^>=0.6.5.1

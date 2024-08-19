@@ -7,16 +7,20 @@ import Control.Monad (when, (<=<))
 import Data.Maybe (catMaybes, mapMaybe)
 import qualified Data.Set as S
 import HChess.Core.Board
-  ( Board (..),
+  ( Board,
     Rank (..),
     Square (..),
     doesSquareContainOpponentsPiece,
-    getDiagonallyAccessibleSquares,
-    getPerpendicularlyAccessibleSquares,
     getPiece,
     isSquareEmpty,
-    rankToPlayerRelativeRank,
-    squareDown,
+  )
+import HChess.Core.Board.Movement
+  ( getDiagonallyAccessibleSquares,
+    getPerpendicularlyAccessibleSquares,
+  )
+import HChess.Core.Board.Rank (rankToPlayerRelativeRank)
+import HChess.Core.Board.Square
+  ( squareDown,
     squareForward,
     squareLeft,
     squareRight,
