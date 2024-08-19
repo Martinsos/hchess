@@ -3,11 +3,11 @@ module Main where
 import Data.Either (fromRight)
 import Data.List (find)
 import qualified Data.Set as S
-import HChess.Board (Board (..), File (..), Rank (..), Square (..))
-import HChess.Game (getBoard, newGame)
-import HChess.MoveOrder (MoveOrder (MoveOrder), performMoveOrder)
-import HChess.Piece (Piece (..))
-import HChess.ValidMoves (getValidAndSafeMoves)
+import HChess.Core.Board (Board (..), File (..), Rank (..), Square (..))
+import HChess.Core.Game (getBoard, newGame)
+import HChess.Core.MoveOrder (MoveOrder (MoveOrder), performMoveOrder)
+import HChess.Core.Piece (Piece (..))
+import HChess.Core.ValidMoves (getValidAndSafeMoves)
 
 -- TODO: Write tests.
 -- TODO: Separate core logic (game, move, ... -> most/all of the stuff in HChess) into a lib.

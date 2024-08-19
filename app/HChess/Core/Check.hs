@@ -1,18 +1,18 @@
-module HChess.Check
+module HChess.Core.Check
   ( isPlayerInCheck,
   )
 where
 
 import qualified Data.Set as S
-import HChess.Board
+import HChess.Core.Board
   ( Board (..),
   )
-import HChess.Color (Color (..), oppositeColor)
-import HChess.Common (findKing)
-import HChess.Move (getMoveDstSquare)
-import HChess.Piece (Piece (..))
+import HChess.Core.Color (Color (..), oppositeColor)
+import HChess.Core.Common (findKing)
+import HChess.Core.Move (getMoveDstSquare)
+import HChess.Core.Piece (Piece (..))
+import HChess.Core.ValidMoves.Simple (getValidSimpleMoves)
 import HChess.Utils (fromEither)
-import HChess.ValidMoves.Simple (getValidSimpleMoves)
 
 isPlayerInCheck :: Color -> Board -> Bool
 isPlayerInCheck currentPlayerColor board@(Board pieces) = any isKingUnderAttackByPiece oponnentPieces

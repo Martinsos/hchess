@@ -1,4 +1,4 @@
-module HChess.Board
+module HChess.Core.Board
   ( Square (..),
     File (..),
     Rank (..),
@@ -24,8 +24,8 @@ import Data.Char (chr, ord)
 import Data.List (find)
 import Data.Maybe (isNothing)
 import qualified Data.Set as S
-import HChess.Color (Color (..))
-import HChess.Piece (Piece (..), PieceType (..), pieceColor)
+import HChess.Core.Color (Color (..))
+import HChess.Core.Piece (Piece (..), PieceType (..), pieceColor)
 import HChess.Utils (safePred, safeSucc)
 
 newtype Board = Board [(Piece, Square)]

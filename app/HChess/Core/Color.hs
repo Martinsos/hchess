@@ -1,4 +1,4 @@
-module HChess.Color
+module HChess.Core.Color
   ( Color (..),
     oppositeColor,
   )

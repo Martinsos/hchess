@@ -1,16 +1,16 @@
-module HChess.GameResult
+module HChess.Core.GameResult
   ( GameResult (..),
     checkIfGameOver,
   )
 where
 
-import HChess.Board (Board (..), Square)
-import HChess.Check (isPlayerInCheck)
-import HChess.Color (Color, oppositeColor)
-import HChess.Game (Game, getBoard, getCurrentPlayerColor)
-import HChess.Piece (Piece (..))
+import HChess.Core.Board (Board (..), Square)
+import HChess.Core.Check (isPlayerInCheck)
+import HChess.Core.Color (Color, oppositeColor)
+import HChess.Core.Game (Game, getBoard, getCurrentPlayerColor)
+import HChess.Core.Piece (Piece (..))
+import HChess.Core.ValidMoves (getValidAndSafeMoves)
 import HChess.Utils (fromEither)
-import HChess.ValidMoves (getValidAndSafeMoves)
 
 data GameResult = Victory !Color | Draw
 

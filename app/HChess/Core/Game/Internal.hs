@@ -1,9 +1,9 @@
-module HChess.Game.Internal
+module HChess.Core.Game.Internal
   ( Game (..),
   )
 where
 
-import HChess.Move (Move)
+import HChess.Core.Move (Move)
 
 -- | We made this Internal because normally we don't want a new move to be added to the Game
 -- directly, instead a move to be added only by the functions that ensure

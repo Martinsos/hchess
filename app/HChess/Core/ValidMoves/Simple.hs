@@ -1,4 +1,4 @@
-module HChess.ValidMoves.Simple
+module HChess.Core.ValidMoves.Simple
   ( getValidSimpleMoves,
   )
 where
@@ -6,7 +6,7 @@ where
 import Control.Monad (when, (<=<))
 import Data.Maybe (catMaybes, mapMaybe)
 import qualified Data.Set as S
-import HChess.Board
+import HChess.Core.Board
   ( Board (..),
     Rank (..),
     Square (..),
@@ -22,10 +22,10 @@ import HChess.Board
     squareRight,
     squareUp,
   )
-import HChess.Color (Color (..), oppositeColor)
-import HChess.Common (findKing, startingPawnRank)
-import HChess.Move (Move (..), MoveType (..))
-import HChess.Piece (Piece (..), PieceType (..))
+import HChess.Core.Color (Color (..), oppositeColor)
+import HChess.Core.Common (findKing, startingPawnRank)
+import HChess.Core.Move (Move (..), MoveType (..))
+import HChess.Core.Piece (Piece (..), PieceType (..))
 import HChess.Utils (maybeToEither, validate)
 
 -- NOTE: This returns all moves except for castling and en passant. Also, it doesn't check if a move exposes its own king to a check.

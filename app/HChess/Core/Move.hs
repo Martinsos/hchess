@@ -1,4 +1,4 @@
-module HChess.Move
+module HChess.Core.Move
   ( Move (..),
     MoveType (..),
     getMoveDstSquare,
@@ -8,8 +8,8 @@ where
 
 import Data.List (find)
 import Data.Maybe (fromJust)
-import HChess.Board (Board (..), File (..), Square (..))
-import HChess.Piece (Piece (..), PieceType)
+import HChess.Core.Board (Board (..), File (..), Square (..))
+import HChess.Core.Piece (Piece (..), PieceType)
 
 -- | Actual valid move that can be performed, containing some additional
 -- information about its context.

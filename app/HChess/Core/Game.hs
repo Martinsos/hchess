@@ -1,4 +1,4 @@
-module HChess.Game
+module HChess.Core.Game
   ( Game,
     newGame,
     getMoves,
@@ -8,10 +8,10 @@ module HChess.Game
 where
 
 import Data.Foldable (foldl')
-import HChess.Board (Board, initialBoard)
-import HChess.Color (Color (..))
-import HChess.Game.Internal (Game (..))
-import HChess.Move (Move, performValidMoveOnBoard)
+import HChess.Core.Board (Board, initialBoard)
+import HChess.Core.Color (Color (..))
+import HChess.Core.Game.Internal (Game (..))
+import HChess.Core.Move (Move, performValidMoveOnBoard)
 
 getCurrentPlayerColor :: Game -> Color
 getCurrentPlayerColor (Game moves) = if even (length moves) then White else Black

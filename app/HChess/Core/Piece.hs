@@ -1,11 +1,11 @@
-module HChess.Piece
+module HChess.Core.Piece
   ( Piece (..),
     PieceType (..),
     pieceColor,
   )
 where
 
-import HChess.Color (Color)
+import HChess.Core.Color (Color)
 
 data Piece = Piece !Color !PieceType
   deriving (Eq, Show)

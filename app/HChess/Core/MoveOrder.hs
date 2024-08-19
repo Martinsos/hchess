@@ -1,15 +1,15 @@
-module HChess.MoveOrder
+module HChess.Core.MoveOrder
   ( MoveOrder (..),
     performMoveOrder,
   )
 where
 
 import Data.List (find)
-import HChess.Board (Square)
-import HChess.Game.Internal (Game (..))
-import HChess.Move (Move (..), MoveType (..))
-import HChess.Piece (PieceType)
-import HChess.ValidMoves (getValidAndSafeMoves)
+import HChess.Core.Board (Square)
+import HChess.Core.Game.Internal (Game (..))
+import HChess.Core.Move (Move (..), MoveType (..))
+import HChess.Core.Piece (PieceType)
+import HChess.Core.ValidMoves (getValidAndSafeMoves)
 
 -- | Order, by user, describing a move they would like to make.
 data MoveOrder = MoveOrder Square Square | PawnPromotionOrder Square Square PieceType

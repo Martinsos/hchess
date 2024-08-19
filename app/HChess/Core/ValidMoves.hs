@@ -1,4 +1,4 @@
-module HChess.ValidMoves
+module HChess.Core.ValidMoves
   ( getValidAndSafeMoves,
   )
 where
@@ -6,7 +6,7 @@ where
 import Control.Monad (when)
 import Data.Maybe (catMaybes)
 import qualified Data.Set as S
-import HChess.Board
+import HChess.Core.Board
   ( Square (..),
     getPiece,
     squareBackward,
@@ -14,15 +14,15 @@ import HChess.Board
     squareLeft,
     squareRight,
   )
-import HChess.Check (isPlayerInCheck)
-import HChess.Color (oppositeColor)
-import HChess.Common (startingPawnRank)
-import HChess.Game (getBoard, getCurrentPlayerColor, getMoves)
-import HChess.Game.Internal (Game (..))
-import HChess.Move (Move (..), MoveType (..), performValidMoveOnBoard)
-import HChess.Piece (Piece (..), PieceType (..))
+import HChess.Core.Check (isPlayerInCheck)
+import HChess.Core.Color (oppositeColor)
+import HChess.Core.Common (startingPawnRank)
+import HChess.Core.Game (getBoard, getCurrentPlayerColor, getMoves)
+import HChess.Core.Game.Internal (Game (..))
+import HChess.Core.Move (Move (..), MoveType (..), performValidMoveOnBoard)
+import HChess.Core.Piece (Piece (..), PieceType (..))
+import HChess.Core.ValidMoves.Simple (getValidSimpleMoves)
 import HChess.Utils (maybeToEither)
-import HChess.ValidMoves.Simple (getValidSimpleMoves)
 
 -- TODO: This function is huge, take it out into separate module and move complex functions in @where@ to standalone functions.
 

@@ -1,4 +1,4 @@
-module HChess.Common
+module HChess.Core.Common
   ( startingPawnRank,
     findKing,
   )
@@ -6,9 +6,9 @@ where
 
 import Data.List (find)
 import Data.Maybe (fromJust)
-import HChess.Board (Board (..), Rank (R2), Square, rankToPlayerRelativeRank)
-import HChess.Color (Color)
-import HChess.Piece (Piece (..), PieceType (King))
+import HChess.Core.Board (Board (..), Rank (R2), Square, rankToPlayerRelativeRank)
+import HChess.Core.Color (Color)
+import HChess.Core.Piece (Piece (..), PieceType (King))
 
 findKing :: Color -> Board -> Square
 findKing color (Board pieces) =
