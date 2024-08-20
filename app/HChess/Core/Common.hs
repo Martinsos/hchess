@@ -12,8 +12,7 @@ import HChess.Core.Color (Color)
 import HChess.Core.Piece (Piece (..), PieceType (King))
 
 findKing :: Color -> Board -> Square
-findKing color =
-  snd . fromJust . find (\(Piece c t, _) -> c == color && t == King) . boardPieces
+findKing color = snd . fromJust . find ((== Piece color King) . fst) . boardPieces
 
 startingPawnRank :: Color -> Rank
 startingPawnRank color = rankToPlayerRelativeRank color R2

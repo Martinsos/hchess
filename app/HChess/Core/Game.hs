@@ -13,14 +13,15 @@ import HChess.Core.Color (Color (..))
 import HChess.Core.Game.Internal (Game (..))
 import HChess.Core.Move (Move, performValidMoveOnBoard)
 
-getCurrentPlayerColor :: Game -> Color
-getCurrentPlayerColor (Game moves) = if even (length moves) then White else Black
-
 newGame :: Game
 newGame = Game []
 
+-- | First move in the list is the latest move.
 getMoves :: Game -> [Move]
 getMoves (Game moves) = moves
 
 getBoard :: Game -> Board
 getBoard (Game moves) = foldl' performValidMoveOnBoard initialBoard $ reverse moves
+
+getCurrentPlayerColor :: Game -> Color
+getCurrentPlayerColor (Game moves) = if even (length moves) then White else Black

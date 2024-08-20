@@ -11,7 +11,7 @@ import HChess.Core.Board
     Rank (..),
     Square (..),
     doesSquareContainOpponentsPiece,
-    getPiece,
+    getPieceAt,
     isSquareEmpty,
   )
 import HChess.Core.Board.Movement
@@ -33,10 +33,15 @@ import HChess.Core.Piece (Piece (..), PieceType (..))
 import HChess.Utils (maybeToEither, validate)
 
 -- NOTE: This returns all moves except for castling and en passant. Also, it doesn't check if a move exposes its own king to a check.
+-- TODO: Remove PawnPromotion from this, make a special function for it, so that
+--   this really returns only "simple moves"? And then adjust data Move to have SimpleMove instead of RegularMove field? And adjust return type here to return only SimpleMoves ?
 getValidSimpleMoves :: Color -> Board -> Square -> Either String (S.Set Move)
 getValidSimpleMoves currentPlayerColor board src@(Square _ srcRank) = do
-  (Piece srcPieceColor srcPieceType) <- maybeToEither "No piece at specified location" $ getPiece board src
-  when (srcPieceColor /= currentPlayerColor) $ Left "Can't move oponnent's piece"
+  (Piece srcPieceColor srcPieceType) <-
+    maybeToEither "No piece at specified location" $ getPieceAt src board
+
+  when (srcPieceColor /= currentPlayerColor) $
+    Left "Can't move oponnent's piece"
 
   let validMoves = case srcPieceType of
         Pawn -> pawnValidMoves
@@ -107,7 +112,7 @@ getValidSimpleMoves currentPlayerColor board src@(Square _ srcRank) = do
         squareFwd = squareForward currentPlayerColor
 
         moveOneSquareForward :: Maybe Move
-        moveOneSquareForward = mkMove RegularMove <$> (squareFwd src >>= validate (isSquareEmpty board))
+        moveOneSquareForward = mkMove RegularMove <$> (squareFwd src >>= validate (`isSquareEmpty` board))
 
         moveTwoSquaresForward :: Maybe Move
         moveTwoSquaresForward = do
@@ -116,9 +121,9 @@ getValidSimpleMoves currentPlayerColor board src@(Square _ srcRank) = do
             else
               mkMove RegularMove
                 <$> ( squareFwd src
-                        >>= validate (isSquareEmpty board)
+                        >>= validate (`isSquareEmpty` board)
                         >>= squareFwd
-                        >>= validate (isSquareEmpty board)
+                        >>= validate (`isSquareEmpty` board)
                     )
 
         attackForwardRight :: Maybe Move
@@ -129,7 +134,7 @@ getValidSimpleMoves currentPlayerColor board src@(Square _ srcRank) = do
 
         registerAsAttack :: Square -> Maybe Move
         registerAsAttack dstSquare
-          | doesSquareContainOpponentsPiece currentPlayerColor board dstSquare = return $ mkMove RegularMove dstSquare
+          | doesSquareContainOpponentsPiece currentPlayerColor dstSquare board = return $ mkMove RegularMove dstSquare
           | otherwise = Nothing
 
         detectAndLabelPawnPromotionMoves :: [Move] -> [Move]

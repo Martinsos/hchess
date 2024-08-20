@@ -6,7 +6,7 @@ where
 import Control.Monad (when)
 import Data.Maybe (catMaybes)
 import qualified Data.Set as S
-import HChess.Core.Board (getPiece)
+import HChess.Core.Board (getPieceAt)
 import HChess.Core.Board.Square
   ( Square (..),
     squareBackward,
@@ -52,12 +52,16 @@ getValidAndSafeMoves game srcSquare = do
     doesMovePutOwnKingInCheck move =
       isPlayerInCheck currentPlayerColor $ performValidMoveOnBoard board move
 
--- NOTE: This returns all moves including for castling and en passant. It doesn't check if a move exposes its own king to a check.
+-- NOTE: This returns all moves including castlings and en passant. It doesn't check if a move exposes its own king to a check.
 getValidMoves :: Game -> Square -> Either ValidMovesInquiryError (S.Set Move)
 getValidMoves game srcSquare = do
   -- TODO: This is duplicated in getValidSimpleMoves.
-  (Piece srcPieceColor srcPieceType) <- maybeToEither "No piece at specified location" $ getPiece board srcSquare
-  when (srcPieceColor /= currentPlayerColor) $ Left "Can't move oponnent's piece"
+  (Piece srcPieceColor srcPieceType) <-
+    maybeToEither "No piece at specified location" $ getPieceAt srcSquare board
+
+  -- TODO: This is duplicated in getValidSimpleMoves.
+  when (srcPieceColor /= currentPlayerColor) $
+    Left "Can't move oponnent's piece"
 
   simpleMoves <- getValidSimpleMoves currentPlayerColor board srcSquare
 
@@ -116,7 +120,7 @@ isMoveEnPassant game dstSquare = case getMoves game of
   [] -> False
   ((Move lastMoveSrcSquare@(Square _ lastMoveSrcSquareRank) lastMoveDstSquare _) : _) ->
     let lastMoveWasOpponentMovingPawnForTwoSquares =
-          getPiece board lastMoveSrcSquare == Just (Piece opponentColor Pawn)
+          getPieceAt lastMoveSrcSquare board == Just (Piece opponentColor Pawn)
             && lastMoveSrcSquareRank == startingPawnRank opponentColor
             && Just lastMoveDstSquare == (squareForward opponentColor lastMoveSrcSquare >>= squareForward opponentColor)
         currentMoveIsSquareBehindLastMoveDstSquare =

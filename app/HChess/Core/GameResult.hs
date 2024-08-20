@@ -14,6 +14,7 @@ import HChess.Utils (fromEither)
 
 data GameResult = Victory !Color | Draw
 
+-- | Returns game result if game is over, or Nothing if game is not over yet.
 checkIfGameOver :: Game -> Maybe GameResult
 checkIfGameOver game
   | playerHasNoValidAndSafeMoves currentPlayerColor =

@@ -26,7 +26,7 @@ getDiagonallyAccessibleSquares color =
       squareRight <=< squareDown
     ]
 
--- | Check @getAccessibleSquaresInDirection@ for detials.
+-- | Check @getAccessibleSquaresInDirection@ for details.
 getAccessibleSquaresInDirections :: Color -> [Square -> Maybe Square] -> Board -> Square -> S.Set Square
 getAccessibleSquaresInDirections color nextSquareInDirectionGetters board startSquare =
   mconcat $ (\f -> getAccessibleSquaresInDirection color f board startSquare) <$> nextSquareInDirectionGetters
@@ -44,8 +44,8 @@ getAccessibleSquaresInDirection ::
 getAccessibleSquaresInDirection color getNextSquareInDirection board startSquare =
   case getNextSquareInDirection startSquare of
     Just nextSquare
-      | isSquareEmpty board nextSquare ->
+      | isSquareEmpty nextSquare board ->
           S.insert nextSquare $
             getAccessibleSquaresInDirection color getNextSquareInDirection board nextSquare
-      | doesSquareContainOpponentsPiece color board nextSquare -> S.singleton nextSquare
+      | doesSquareContainOpponentsPiece color nextSquare board -> S.singleton nextSquare
     _ -> S.empty
