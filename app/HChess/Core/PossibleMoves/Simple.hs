@@ -1,4 +1,4 @@
-module HChess.Core.LegalMoves.Simple
+module HChess.Core.PossibleMoves.Simple
   ( getPossibleSimpleMoves,
   )
 where
@@ -32,9 +32,10 @@ import HChess.Core.Move (Move (..), MoveType (..))
 import HChess.Core.Piece (Piece (..), PieceType (..))
 import HChess.Utils (maybeToEither, validate)
 
--- NOTE: This returns all moves except for castling and en passant. Also, it doesn't check if a move exposes its own king to a check.
--- TODO: Remove PawnPromotion from this, make a special function for it, so that
---   this really returns only "simple moves"? And then adjust data Move to have SimpleMove instead of RegularMove field? And adjust return type here to return only SimpleMoves ?
+-- | Returns all "simple" moves: moves that don't require history of the game but only current state
+-- of the board. That is all the moves except for castling and en passant. Also, it doesn't check if
+-- a move exposes its own king to a check, therefore returning all possible moves, not just legal
+-- ones.
 getPossibleSimpleMoves :: Color -> Board -> Square -> Either String (S.Set Move)
 getPossibleSimpleMoves currentPlayerColor board src@(Square _ srcRank) = do
   (Piece srcPieceColor srcPieceType) <-
@@ -56,10 +57,14 @@ getPossibleSimpleMoves currentPlayerColor board src@(Square _ srcRank) = do
     mkMove moveType dstSquare = Move src dstSquare moveType
 
     bishopPossibleMoves :: S.Set Move
-    bishopPossibleMoves = mkMove RegularMove `S.map` getDiagonallyAccessibleSquares currentPlayerColor board src
+    bishopPossibleMoves =
+      mkMove RegularMove
+        `S.map` getDiagonallyAccessibleSquares currentPlayerColor board src
 
     rookPossibleMoves :: S.Set Move
-    rookPossibleMoves = mkMove RegularMove `S.map` getPerpendicularlyAccessibleSquares currentPlayerColor board src
+    rookPossibleMoves =
+      mkMove RegularMove
+        `S.map` getPerpendicularlyAccessibleSquares currentPlayerColor board src
 
     queenPossibleMoves :: S.Set Move
     queenPossibleMoves =
@@ -71,20 +76,22 @@ getPossibleSimpleMoves currentPlayerColor board src@(Square _ srcRank) = do
 
     kingPossibleMoves :: S.Set Move
     kingPossibleMoves =
-      let getKingsMoves kingsSrcSquare =
-            (S.fromList . (mkMove RegularMove <$>) . mapMaybe ($ kingsSrcSquare))
-              [ squareUp,
-                squareUp <=< squareLeft,
-                squareUp <=< squareRight,
-                squareLeft,
-                squareRight,
-                squareDown,
-                squareDown <=< squareLeft,
-                squareDown <=< squareRight
-              ]
-          opponentsKingSquare = findKing (oppositeColor currentPlayerColor) board
-          filterOutMovesTooCloseToOpponentsKing kingsMoves = kingsMoves `S.difference` getKingsMoves opponentsKingSquare
-       in filterOutMovesTooCloseToOpponentsKing $ getKingsMoves src
+      filterOutMovesTooCloseToOpponentsKing $ getKingsMoves src
+      where
+        getKingsMoves kingsSrcSquare =
+          (S.fromList . (mkMove RegularMove <$>) . mapMaybe ($ kingsSrcSquare))
+            [ squareUp,
+              squareUp <=< squareLeft,
+              squareUp <=< squareRight,
+              squareLeft,
+              squareRight,
+              squareDown,
+              squareDown <=< squareLeft,
+              squareDown <=< squareRight
+            ]
+        opponentsKingSquare = findKing (oppositeColor currentPlayerColor) board
+        filterOutMovesTooCloseToOpponentsKing kingsMoves =
+          kingsMoves `S.difference` getKingsMoves opponentsKingSquare
 
     knightPossibleMoves :: S.Set Move
     knightPossibleMoves =
@@ -112,7 +119,9 @@ getPossibleSimpleMoves currentPlayerColor board src@(Square _ srcRank) = do
         squareFwd = squareForward currentPlayerColor
 
         moveOneSquareForward :: Maybe Move
-        moveOneSquareForward = mkMove RegularMove <$> (squareFwd src >>= validate (`isSquareEmpty` board))
+        moveOneSquareForward =
+          mkMove RegularMove
+            <$> (squareFwd src >>= validate (`isSquareEmpty` board))
 
         moveTwoSquaresForward :: Maybe Move
         moveTwoSquaresForward = do
@@ -134,8 +143,10 @@ getPossibleSimpleMoves currentPlayerColor board src@(Square _ srcRank) = do
 
         registerAsAttack :: Square -> Maybe Move
         registerAsAttack dstSquare
-          | doesSquareContainOpponentsPiece currentPlayerColor dstSquare board = return $ mkMove RegularMove dstSquare
-          | otherwise = Nothing
+          | doesSquareContainOpponentsPiece currentPlayerColor dstSquare board =
+              return $ mkMove RegularMove dstSquare
+          | otherwise =
+              Nothing
 
         detectAndLabelPawnPromotionMoves :: [Move] -> [Move]
         detectAndLabelPawnPromotionMoves = concatMap detectAndLabelPawnPromotionMove

@@ -1,4 +1,4 @@
-module HChess.Core.LegalMoves.Special
+module HChess.Core.PossibleMoves.Special
   ( getPossibleSpecialMoves,
   )
 where
@@ -23,8 +23,9 @@ import HChess.Core.Move (Move (..), MoveType (..))
 import HChess.Core.Piece (Piece (..), PieceType (..))
 import HChess.Utils (maybeToEither)
 
--- | Special moves are castling and enpassant. They are special because they require history of the game, not just current board state.
--- Also, interesting and important -> none of them can attack enemy king.
+-- | Returns all "special" moves: moves that require history of the game and not just the current
+-- state of the board. These are castlings and en-passant. Also, interesting and important -> none
+-- of them can attack enemy king.
 getPossibleSpecialMoves :: Game -> Square -> Either String (S.Set Move)
 getPossibleSpecialMoves game srcSquare = do
   -- TODO: This is duplicated in getPossibleSimpleMoves.
@@ -35,7 +36,6 @@ getPossibleSpecialMoves game srcSquare = do
   when (srcPieceColor /= currentPlayerColor) $
     Left "Can't move oponnent's piece"
 
-  -- TODO: Extract this into special getPossibleSpecialMoves function?
   return $ case srcPieceType of
     Pawn -> pawnPossibleSpecialMoves
     King -> kingPossibleSpecialMoves
@@ -67,6 +67,11 @@ getPossibleSpecialMoves game srcSquare = do
       --  2. Check that rook has never moved.
       --  3. Check that square between the kind and rook are vacant.
       --  4. Neither king, rook, or any square in between them is under attack.
+      --     For this I will want to
+      --     implement function `findPiecesAttackingSquare` and then based on it
+      --     `isSquareUnderAttack`, and all I am going to need is getPossibleSimpleMoves. Then I can
+      --     use that function in isPlayerInCheck.
+      --
       --  We need to check this for both kingside castling and for queenside castling.
       --  To check if king has never moved, it is best to just check if there was ever a move that had its initial square as src.
       --  To check if rook has never moved, we can do this same check, although it might have in theory been moved by castling,
@@ -87,7 +92,10 @@ isMoveEnPassant game dstSquare = case getMoves game of
     let lastMoveWasOpponentMovingPawnForTwoSquares =
           getPieceAt lastMoveSrcSquare board == Just (Piece opponentColor Pawn)
             && lastMoveSrcSquareRank == startingPawnRank opponentColor
-            && Just lastMoveDstSquare == (squareForward opponentColor lastMoveSrcSquare >>= squareForward opponentColor)
+            && Just lastMoveDstSquare
+              == ( squareForward opponentColor lastMoveSrcSquare
+                     >>= squareForward opponentColor
+                 )
         currentMoveIsSquareBehindLastMoveDstSquare =
           squareBackward opponentColor lastMoveDstSquare == Just dstSquare
      in lastMoveWasOpponentMovingPawnForTwoSquares
