@@ -54,9 +54,9 @@ executable hchess
     HChess.Core.Move
     HChess.Core.MoveOrder
     HChess.Core.Piece
-    HChess.Core.ValidMoves
-    HChess.Core.ValidMoves.Simple
-    HChess.Core.ValidMoves.Special
+    HChess.Core.LegalMoves
+    HChess.Core.LegalMoves.Simple
+    HChess.Core.LegalMoves.Special
     HChess.Utils
 
   build-depends:    base ^>=4.14.3.0,

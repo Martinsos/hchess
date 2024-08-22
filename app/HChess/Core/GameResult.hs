@@ -8,8 +8,8 @@ import HChess.Core.Board (Square, boardPieces)
 import HChess.Core.Check (isPlayerInCheck)
 import HChess.Core.Color (Color, oppositeColor)
 import HChess.Core.Game (Game, getBoard, getCurrentPlayerColor)
+import HChess.Core.LegalMoves (getLegalMoves)
 import HChess.Core.Piece (Piece (..))
-import HChess.Core.ValidMoves (getValidAndSafeMoves)
 import HChess.Utils (fromEither)
 
 data GameResult = Victory !Color | Draw
@@ -17,7 +17,7 @@ data GameResult = Victory !Color | Draw
 -- | Returns game result if game is over, or Nothing if game is not over yet.
 checkIfGameOver :: Game -> Maybe GameResult
 checkIfGameOver game
-  | playerHasNoValidAndSafeMoves currentPlayerColor =
+  | playerHasNoLegalMoves currentPlayerColor =
       if isPlayerInCheck currentPlayerColor board
         then Just $ Victory $ oppositeColor currentPlayerColor
         else Just Draw
@@ -27,9 +27,9 @@ checkIfGameOver game
   where
     (board, currentPlayerColor) = (getBoard game, getCurrentPlayerColor game)
 
-    playerHasNoValidAndSafeMoves :: Color -> Bool
-    playerHasNoValidAndSafeMoves playerColor =
-      null (mconcat $ map (fromEither . getValidAndSafeMoves game) (squaresWithPiecesOfColor playerColor))
+    playerHasNoLegalMoves :: Color -> Bool
+    playerHasNoLegalMoves playerColor =
+      null (mconcat $ map (fromEither . getLegalMoves game) (squaresWithPiecesOfColor playerColor))
 
     squaresWithPiecesOfColor :: Color -> [Square]
     squaresWithPiecesOfColor color =

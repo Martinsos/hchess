@@ -11,7 +11,7 @@ import Data.Foldable (foldl')
 import HChess.Core.Board (Board, initialBoard)
 import HChess.Core.Color (Color (..))
 import HChess.Core.Game.Internal (Game (..))
-import HChess.Core.Move (Move, performValidMoveOnBoard)
+import HChess.Core.Move (Move, performLegalMoveOnBoard)
 
 newGame :: Game
 newGame = Game []
@@ -21,7 +21,7 @@ getMoves :: Game -> [Move]
 getMoves (Game moves) = moves
 
 getBoard :: Game -> Board
-getBoard (Game moves) = foldl' performValidMoveOnBoard initialBoard $ reverse moves
+getBoard (Game moves) = foldl' performLegalMoveOnBoard initialBoard $ reverse moves
 
 getCurrentPlayerColor :: Game -> Color
 getCurrentPlayerColor (Game moves) = if even (length moves) then White else Black

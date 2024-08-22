@@ -1,5 +1,5 @@
-module HChess.Core.ValidMoves.Simple
-  ( getValidSimpleMoves,
+module HChess.Core.LegalMoves.Simple
+  ( getPossibleSimpleMoves,
   )
 where
 
@@ -35,42 +35,42 @@ import HChess.Utils (maybeToEither, validate)
 -- NOTE: This returns all moves except for castling and en passant. Also, it doesn't check if a move exposes its own king to a check.
 -- TODO: Remove PawnPromotion from this, make a special function for it, so that
 --   this really returns only "simple moves"? And then adjust data Move to have SimpleMove instead of RegularMove field? And adjust return type here to return only SimpleMoves ?
-getValidSimpleMoves :: Color -> Board -> Square -> Either String (S.Set Move)
-getValidSimpleMoves currentPlayerColor board src@(Square _ srcRank) = do
+getPossibleSimpleMoves :: Color -> Board -> Square -> Either String (S.Set Move)
+getPossibleSimpleMoves currentPlayerColor board src@(Square _ srcRank) = do
   (Piece srcPieceColor srcPieceType) <-
     maybeToEither "No piece at specified location" $ getPieceAt src board
 
   when (srcPieceColor /= currentPlayerColor) $
     Left "Can't move oponnent's piece"
 
-  let validMoves = case srcPieceType of
-        Pawn -> pawnValidMoves
-        Knight -> knightValidMoves
-        Bishop -> bishopValidMoves
-        Rook -> rookValidMoves
-        Queen -> queenValidMoves
-        King -> kingValidMoves
-  return validMoves
+  let possibleMoves = case srcPieceType of
+        Pawn -> pawnPossibleMoves
+        Knight -> knightPossibleMoves
+        Bishop -> bishopPossibleMoves
+        Rook -> rookPossibleMoves
+        Queen -> queenPossibleMoves
+        King -> kingPossibleMoves
+  return possibleMoves
   where
     mkMove :: MoveType -> Square -> Move
     mkMove moveType dstSquare = Move src dstSquare moveType
 
-    bishopValidMoves :: S.Set Move
-    bishopValidMoves = mkMove RegularMove `S.map` getDiagonallyAccessibleSquares currentPlayerColor board src
+    bishopPossibleMoves :: S.Set Move
+    bishopPossibleMoves = mkMove RegularMove `S.map` getDiagonallyAccessibleSquares currentPlayerColor board src
 
-    rookValidMoves :: S.Set Move
-    rookValidMoves = mkMove RegularMove `S.map` getPerpendicularlyAccessibleSquares currentPlayerColor board src
+    rookPossibleMoves :: S.Set Move
+    rookPossibleMoves = mkMove RegularMove `S.map` getPerpendicularlyAccessibleSquares currentPlayerColor board src
 
-    queenValidMoves :: S.Set Move
-    queenValidMoves =
+    queenPossibleMoves :: S.Set Move
+    queenPossibleMoves =
       mkMove RegularMove
         `S.map` mconcat
           [ getDiagonallyAccessibleSquares currentPlayerColor board src,
             getPerpendicularlyAccessibleSquares currentPlayerColor board src
           ]
 
-    kingValidMoves :: S.Set Move
-    kingValidMoves =
+    kingPossibleMoves :: S.Set Move
+    kingPossibleMoves =
       let getKingsMoves kingsSrcSquare =
             (S.fromList . (mkMove RegularMove <$>) . mapMaybe ($ kingsSrcSquare))
               [ squareUp,
@@ -86,8 +86,8 @@ getValidSimpleMoves currentPlayerColor board src@(Square _ srcRank) = do
           filterOutMovesTooCloseToOpponentsKing kingsMoves = kingsMoves `S.difference` getKingsMoves opponentsKingSquare
        in filterOutMovesTooCloseToOpponentsKing $ getKingsMoves src
 
-    knightValidMoves :: S.Set Move
-    knightValidMoves =
+    knightPossibleMoves :: S.Set Move
+    knightPossibleMoves =
       (S.fromList . (mkMove RegularMove <$>) . mapMaybe ($ src))
         [ squareUp <=< squareUp <=< squareRight,
           squareUp <=< squareUp <=< squareLeft,
@@ -99,8 +99,8 @@ getValidSimpleMoves currentPlayerColor board src@(Square _ srcRank) = do
           squareDown <=< squareLeft <=< squareLeft
         ]
 
-    pawnValidMoves :: S.Set Move
-    pawnValidMoves =
+    pawnPossibleMoves :: S.Set Move
+    pawnPossibleMoves =
       (S.fromList . detectAndLabelPawnPromotionMoves . catMaybes)
         [ moveOneSquareForward,
           moveTwoSquaresForward,

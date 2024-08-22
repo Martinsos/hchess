@@ -1,5 +1,5 @@
-module HChess.Core.ValidMoves.Special
-  ( getValidSpecialMoves,
+module HChess.Core.LegalMoves.Special
+  ( getPossibleSpecialMoves,
   )
 where
 
@@ -25,25 +25,25 @@ import HChess.Utils (maybeToEither)
 
 -- | Special moves are castling and enpassant. They are special because they require history of the game, not just current board state.
 -- Also, interesting and important -> none of them can attack enemy king.
-getValidSpecialMoves :: Game -> Square -> Either String (S.Set Move)
-getValidSpecialMoves game srcSquare = do
-  -- TODO: This is duplicated in getValidSimpleMoves.
+getPossibleSpecialMoves :: Game -> Square -> Either String (S.Set Move)
+getPossibleSpecialMoves game srcSquare = do
+  -- TODO: This is duplicated in getPossibleSimpleMoves.
   (Piece srcPieceColor srcPieceType) <-
     maybeToEither "No piece at specified location" $ getPieceAt srcSquare board
 
-  -- TODO: This is duplicated in getValidSimpleMoves.
+  -- TODO: This is duplicated in getPossibleSimpleMoves.
   when (srcPieceColor /= currentPlayerColor) $
     Left "Can't move oponnent's piece"
 
-  -- TODO: Extract this into special getValidSpecialMoves function?
+  -- TODO: Extract this into special getPossibleSpecialMoves function?
   return $ case srcPieceType of
-    Pawn -> pawnValidSpecialMoves
-    King -> kingValidSpecialMoves
+    Pawn -> pawnPossibleSpecialMoves
+    King -> kingPossibleSpecialMoves
     _ -> S.empty
   where
     (board, currentPlayerColor) = (getBoard game, getCurrentPlayerColor game)
 
-    pawnValidSpecialMoves =
+    pawnPossibleSpecialMoves =
       (S.fromList . catMaybes)
         [ squareFwd srcSquare >>= squareRight >>= makeAnEnPassantMove,
           squareFwd srcSquare >>= squareLeft >>= makeAnEnPassantMove
@@ -61,7 +61,7 @@ getValidSpecialMoves game srcSquare = do
         mkMove :: MoveType -> Square -> Move
         mkMove moveType dstSquare = Move srcSquare dstSquare moveType
 
-    kingValidSpecialMoves =
+    kingPossibleSpecialMoves =
       -- TODO:
       --  1. Check that king was never moved.
       --  2. Check that rook has never moved.
@@ -78,7 +78,7 @@ getValidSpecialMoves game srcSquare = do
       error "TODO: castling"
 
 -- | For a given destination square, determine if landing a pawn on that square would be en passant
--- move. We assume that move is valid, in a sense that there is such pawn, owned by the player that
+-- move. We assume that move is possible, in a sense that there is such pawn, owned by the player that
 -- currently has turn, that can be moved to this square.
 isMoveEnPassant :: Game -> Square -> Bool
 isMoveEnPassant game dstSquare = case getMoves game of
