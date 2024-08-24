@@ -1,48 +1,108 @@
 module Main where
 
-import Data.Either (fromRight)
-import Data.List (find)
-import qualified Data.Set as S
-import HChess.Core.Board (Board, File (..), Rank (..), Square (..), boardPieces)
-import HChess.Core.Game (getBoard, newGame)
-import HChess.Core.LegalMoves (getLegalMoves)
+import Data.Char (chr, ord, toLower)
+import HChess.Core.Board (Board, File (..), Rank (..), Square (..), getPieceAt)
+import HChess.Core.Board.Square (squareColor)
+import HChess.Core.Color (Color (..))
+import HChess.Core.Game (Game, getBoard, getCurrentPlayerColor, newGame)
+import HChess.Core.GameResult (GameResult (..), checkIfGameOver)
 import HChess.Core.MoveOrder (MoveOrder (MoveOrder), performMoveOrder)
-import HChess.Core.Piece (Piece (..))
+import HChess.Core.Piece (Piece (..), PieceType (..))
 
 -- TODO: Write tests.
--- TODO: Separate core logic (game, move, ... -> most/all of the stuff in HChess) into a lib.
+-- TODO: Separate core logic (game, move, ... -> most/all of the stuff in HChess) into a lib?
 
 main :: IO ()
 main = do
-  let game = newGame
+  gameLoop newGame
 
-  putStrLn "\nBoard:"
-  putStrLn $ unlines $ showBoard $ getBoard game
+gameLoop :: Game -> IO ()
+gameLoop game = do
+  putStrLn $ unlines $ showBoardAscii $ getBoard game
+  case checkIfGameOver game of
+    Just result -> case result of
+      Draw -> print ("Draw!" :: String)
+      Victory color -> print $ show color <> " won!"
+    Nothing -> do
+      putStrLn $ show (getCurrentPlayerColor game) <> ", input your move:"
+      game' <- readAndPerformLegalMove
+      gameLoop game'
+  where
+    readMoveOrder :: IO MoveOrder
+    readMoveOrder =
+      getLine
+        >>= maybe
+          (putStrLn "Wrong format, must be e.g. a1-a2" >> readMoveOrder)
+          pure
+          . parseMoveOrder
+      where
+        -- parseMoveOrder <$> getLine >>= \case
+        --   Nothing -> do
+        --     putStrLn "Wrong format, must be e.g. a1-a2"
+        --     readMoveOrder
+        --   Just moveOrder -> pure moveOrder
 
-  putStrLn "\nLegal moves for the most-left white horsey:"
-  print $ getLegalMoves game (Square FB R1)
+        parseMoveOrder :: String -> Maybe MoveOrder
+        parseMoveOrder str = do
+          let (srcSquareStr, dstSquareStr) = (take 2 str, drop 3 str)
+          srcSquare <- parseSquare srcSquareStr
+          dstSquare <- parseSquare dstSquareStr
+          pure $ MoveOrder srcSquare dstSquare
+        parseSquare :: String -> Maybe Square
+        parseSquare [f, r] = Just $ Square (toEnum $ ord (toLower f) - ord 'a') (toEnum $ ord r - ord '1')
+        parseSquare _ = Nothing
 
-  let Right kingsPawnMoves = S.toList <$> getLegalMoves game (Square FE R2)
-  putStrLn "\nLegal moves for the king's pawn:"
-  print kingsPawnMoves
+    readAndPerformLegalMove :: IO Game
+    readAndPerformLegalMove = do
+      moveOrder <- readMoveOrder
+      case performMoveOrder game moveOrder of
+        Left errorMsg -> do
+          print errorMsg
+          readAndPerformLegalMove
+        Right game' -> pure game'
 
-  let game' =
-        fromRight (error "illegal move") $
-          performMoveOrder game $ MoveOrder (Square FE R2) (Square FE R4)
-
-  putStrLn "\nBoard:"
-  putStrLn $ unlines $ showBoard $ getBoard game'
-
-showBoard :: Board -> [String]
-showBoard board = showRow <$> reverse [R1 .. R8]
+showBoardAscii :: Board -> [String]
+showBoardAscii board =
+  [""]
+    <> (showRow <$> reverse [R1 .. R8])
+    <> [ "",
+         "    " <> concat ((\f -> " " <> showFile f <> " ") <$> [FA .. FH])
+       ]
   where
     showRow :: Rank -> String
-    showRow rank = concat $ showSquare . (`Square` rank) <$> [FA .. FH]
+    showRow rank =
+      (showRank rank <> "   ") <> concat (showSquare . (`Square` rank) <$> [FA .. FH])
+
+    showRank :: Rank -> String
+    showRank rank = show $ 1 + fromEnum rank
+
+    showFile :: File -> String
+    showFile file = pure $ chr $ ord 'A' + fromEnum file
 
     showSquare :: Square -> String
     showSquare square =
-      case find ((== square) . snd) piecesOnBoard of
-        Nothing -> "-"
-        Just (piece, _square) -> show $ pieceType piece
+      concat
+        [ case squareColor square of
+            White -> "\ESC[45m"
+            Black -> "\ESC[40m",
+          " ",
+          maybe " " showPiece (getPieceAt square board),
+          " ",
+          "\ESC[0m"
+        ]
 
-    piecesOnBoard = boardPieces board
+    showPiece :: Piece -> String
+    showPiece (Piece Black pType) = case pType of
+      King -> "\x2654"
+      Queen -> "\x2655"
+      Rook -> "\x2656"
+      Bishop -> "\x2657"
+      Knight -> "\x2658"
+      Pawn -> "\x2659"
+    showPiece (Piece White pType) = case pType of
+      King -> "\x265A"
+      Queen -> "\x265B"
+      Rook -> "\x265C"
+      Bishop -> "\x265D"
+      Knight -> "\x265E"
+      Pawn -> "\x265F"

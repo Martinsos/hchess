@@ -1,5 +1,6 @@
 module HChess.Core.Board.Square
   ( Square (..),
+    squareColor,
     squareLeft,
     squareRight,
     squareUp,
@@ -22,6 +23,12 @@ data Square = Square
 
 instance Show Square where
   show (Square f r) = show f ++ show r
+
+squareColor :: Square -> Color
+squareColor (Square file rank) =
+  if even $ fromEnum file + fromEnum rank
+    then Black
+    else White
 
 squareUp :: Square -> Maybe Square
 squareUp (Square f r) = (f `Square`) <$> safeSucc r

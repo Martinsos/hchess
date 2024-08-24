@@ -61,26 +61,25 @@ getPossibleSpecialMoves game srcSquare = do
         mkMove :: MoveType -> Square -> Move
         mkMove moveType dstSquare = Move srcSquare dstSquare moveType
 
-    kingPossibleSpecialMoves =
-      -- TODO:
-      --  1. Check that king was never moved.
-      --  2. Check that rook has never moved.
-      --  3. Check that square between the kind and rook are vacant.
-      --  4. Neither king, rook, or any square in between them is under attack.
-      --     For this I will want to
-      --     implement function `findPiecesAttackingSquare` and then based on it
-      --     `isSquareUnderAttack`, and all I am going to need is getPossibleSimpleMoves. Then I can
-      --     use that function in isPlayerInCheck.
-      --
-      --  We need to check this for both kingside castling and for queenside castling.
-      --  To check if king has never moved, it is best to just check if there was ever a move that had its initial square as src.
-      --  To check if rook has never moved, we can do this same check, although it might have in theory been moved by castling,
-      --    but in that case the check with "did king move" will fail first anyway.
-      --  Checking that squares in between are vacant should be trivial.
-      --  Checking that none of the squares is under attack: I should take a look at `isPlayerInCheck` function,
-      --  refactor it into more general `isSquareUnderAttack` function, and then use that function here plus
-      --  also redefine isPlayerInCheck via it.
-      error "TODO: castling"
+    -- TODO:
+    --  1. Check that king was never moved.
+    --  2. Check that rook has never moved.
+    --  3. Check that square between the kind and rook are vacant.
+    --  4. Neither king, rook, or any square in between them is under attack.
+    --     For this I will want to
+    --     implement function `findPiecesAttackingSquare` and then based on it
+    --     `isSquareUnderAttack`, and all I am going to need is getPossibleSimpleMoves. Then I can
+    --     use that function in isPlayerInCheck.
+    --
+    --  We need to check this for both kingside castling and for queenside castling.
+    --  To check if king has never moved, it is best to just check if there was ever a move that had its initial square as src.
+    --  To check if rook has never moved, we can do this same check, although it might have in theory been moved by castling,
+    --    but in that case the check with "did king move" will fail first anyway.
+    --  Checking that squares in between are vacant should be trivial.
+    --  Checking that none of the squares is under attack: I should take a look at `isPlayerInCheck` function,
+    --  refactor it into more general `isSquareUnderAttack` function, and then use that function here plus
+    --  also redefine isPlayerInCheck via it.
+    kingPossibleSpecialMoves = S.empty
 
 -- | For a given destination square, determine if landing a pawn on that square would be en passant
 -- move. We assume that move is possible, in a sense that there is such pawn, owned by the player that
