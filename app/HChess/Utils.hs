@@ -1,9 +1,12 @@
+{-# LANGUAGE TypeApplications #-}
+
 module HChess.Utils
   ( fromEither,
     validate,
     maybeToEither,
     safeSucc,
     safePred,
+    safeToEnum,
   )
 where
 
@@ -23,3 +26,9 @@ safeSucc a = if a == maxBound then Nothing else Just $ succ a
 
 safePred :: (Bounded a, Eq a, Enum a) => a -> Maybe a
 safePred a = if a == minBound then Nothing else Just $ pred a
+
+safeToEnum :: forall a. (Bounded a, Enum a) => Int -> Maybe a
+safeToEnum i
+  | fromEnum @a minBound <= i && i <= fromEnum @a maxBound =
+      Just $ toEnum i
+safeToEnum _ = Nothing

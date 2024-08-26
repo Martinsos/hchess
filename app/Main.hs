@@ -3,11 +3,13 @@ module Main where
 import Data.Char (chr, ord, toLower)
 import HChess.Core.Board (Board, File (..), Rank (..), Square (..), getPieceAt)
 import HChess.Core.Board.Square (squareColor)
+import HChess.Core.Check (isPlayerInCheck)
 import HChess.Core.Color (Color (..))
 import HChess.Core.Game (Game, getBoard, getCurrentPlayerColor, newGame)
 import HChess.Core.GameResult (GameResult (..), checkIfGameOver)
 import HChess.Core.MoveOrder (MoveOrder (MoveOrder), performMoveOrder)
 import HChess.Core.Piece (Piece (..), PieceType (..))
+import HChess.Utils (safeToEnum)
 
 -- TODO: Write tests.
 -- TODO: Separate core logic (game, move, ... -> most/all of the stuff in HChess) into a lib?
@@ -18,15 +20,33 @@ main = do
 
 gameLoop :: Game -> IO ()
 gameLoop game = do
+  clearScreen
+
   putStrLn $ unlines $ showBoardAscii $ getBoard game
+
+  -- TODO: Print pieces that are out of the game, in two rows, black and white.
+  -- TODO: Print all the moves that happened so far.
+
+  putStrLn $
+    if isPlayerInCheck (getCurrentPlayerColor game) (getBoard game)
+      then "Check!"
+      else ""
+
   case checkIfGameOver game of
     Just result -> case result of
-      Draw -> print ("Draw!" :: String)
-      Victory color -> print $ show color <> " won!"
+      Draw -> putStrLn "Draw!"
+      Victory color -> putStrLn $ show color <> " won!"
     Nothing -> do
       putStrLn $ show (getCurrentPlayerColor game) <> ", input your move:"
-      game' <- readAndPerformLegalMove
+      game' <- readAndPerformLegalMove game
       gameLoop game'
+
+readAndPerformLegalMove :: Game -> IO Game
+readAndPerformLegalMove game = do
+  moveOrder <- readMoveOrder
+  case performMoveOrder game moveOrder of
+    Left errorMsg -> print errorMsg >> readAndPerformLegalMove game
+    Right game' -> pure game'
   where
     readMoveOrder :: IO MoveOrder
     readMoveOrder =
@@ -36,48 +56,39 @@ gameLoop game = do
           pure
           . parseMoveOrder
       where
-        -- parseMoveOrder <$> getLine >>= \case
-        --   Nothing -> do
-        --     putStrLn "Wrong format, must be e.g. a1-a2"
-        --     readMoveOrder
-        --   Just moveOrder -> pure moveOrder
-
         parseMoveOrder :: String -> Maybe MoveOrder
         parseMoveOrder str = do
           let (srcSquareStr, dstSquareStr) = (take 2 str, drop 3 str)
           srcSquare <- parseSquare srcSquareStr
           dstSquare <- parseSquare dstSquareStr
           pure $ MoveOrder srcSquare dstSquare
+
         parseSquare :: String -> Maybe Square
-        parseSquare [f, r] = Just $ Square (toEnum $ ord (toLower f) - ord 'a') (toEnum $ ord r - ord '1')
+        parseSquare [fileChar, rankChar] = do
+          file <- safeToEnum $ ord (toLower fileChar) - ord 'a'
+          rank <- safeToEnum $ ord rankChar - ord '1'
+          return $ Square file rank
         parseSquare _ = Nothing
 
-    readAndPerformLegalMove :: IO Game
-    readAndPerformLegalMove = do
-      moveOrder <- readMoveOrder
-      case performMoveOrder game moveOrder of
-        Left errorMsg -> do
-          print errorMsg
-          readAndPerformLegalMove
-        Right game' -> pure game'
+clearScreen :: IO ()
+clearScreen = do
+  putStrLn "\ESC[2J"
+  putStrLn "\ESC[H"
 
 showBoardAscii :: Board -> [String]
 showBoardAscii board =
-  [""]
-    <> (showRow <$> reverse [R1 .. R8])
-    <> [ "",
-         "    " <> concat ((\f -> " " <> showFile f <> " ") <$> [FA .. FH])
-       ]
+  (showRow <$> reverse [R1 .. R8])
+    <> ["\n    " <> concat ((\f -> " " <> showFileNumber f <> " ") <$> [FA .. FH])]
   where
     showRow :: Rank -> String
     showRow rank =
-      (showRank rank <> "   ") <> concat (showSquare . (`Square` rank) <$> [FA .. FH])
+      (showRankLetter rank <> "   ") <> concat (showSquare . (`Square` rank) <$> [FA .. FH])
 
-    showRank :: Rank -> String
-    showRank rank = show $ 1 + fromEnum rank
+    showRankLetter :: Rank -> String
+    showRankLetter rank = show $ 1 + fromEnum rank
 
-    showFile :: File -> String
-    showFile file = pure $ chr $ ord 'A' + fromEnum file
+    showFileNumber :: File -> String
+    showFileNumber file = pure $ chr $ ord 'A' + fromEnum file
 
     showSquare :: Square -> String
     showSquare square =

@@ -10,6 +10,10 @@ import Data.Maybe (fromJust)
 import HChess.Core.Board (Board, File (..), Square (..), getPieceAt, movePieceFromTo, putPieceAt, removeAnyPieceAt)
 import HChess.Core.Piece (Piece (..), PieceType)
 
+-- TODO: Consider using LiquidHaskell for stronger compile time checks, for example to check
+--   that Move applied to a Game indeed was created via function that generates valid
+--   moves for that specific game. Something like {-@ ... g:Game -> { r: [Move] | isValidMove r g } ... -> this is wrong code I wrote here but it is a very rough idea.
+
 -- | TODO: What if we had data Move = RegularMove Square Square | EnPassant Square | KingsideCastling Color | QueensideCastling Color | PawnPromotion Square Square PieceType , so it has less chance to be invalid?
 --   Additionaly, consider embedding more info into these, to make it easier to analyze them
 --   standalone to some degree, without having to calculate the whole board.
