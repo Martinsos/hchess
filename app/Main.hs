@@ -13,6 +13,9 @@ import HChess.Utils (safeToEnum)
 
 -- TODO: Write tests.
 -- TODO: Separate core logic (game, move, ... -> most/all of the stuff in HChess) into a lib?
+-- TODO: Separate ASCII playing into its own module tree (HChess.Ascii) and also
+-- implement alternative frontends like Brick (HChess.Terminal) and also real GUI (HChess.GUI).
+-- Maybe group them all under `HChess.Frontend`.
 
 main :: IO ()
 main = do
@@ -25,7 +28,7 @@ gameLoop game = do
   putStrLn $ unlines $ showBoardAscii $ getBoard game
 
   -- TODO: Print pieces that are out of the game, in two rows, black and white.
-  -- TODO: Print all the moves that happened so far.
+  -- TODO: Print all the moves that happened so far, in chess notation.
 
   putStrLn $
     if isPlayerInCheck (getCurrentPlayerColor game) (getBoard game)
