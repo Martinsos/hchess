@@ -1,7 +1,9 @@
 module Main where
 
+import Control.Monad (forM_)
 import Data.Char (chr, ord, toLower)
-import HChess.Core.Board (Board, File (..), Rank (..), Square (..), getPieceAt)
+import Data.List (sort)
+import HChess.Core.Board (Board, File (..), Rank (..), Square (..), getCapturedPieces, getPieceAt)
 import HChess.Core.Board.Square (squareColor)
 import HChess.Core.Check (isPlayerInCheck)
 import HChess.Core.Color (Color (..))
@@ -13,6 +15,8 @@ import HChess.Utils (safeToEnum)
 
 -- TODO: Write tests.
 -- TODO: Separate core logic (game, move, ... -> most/all of the stuff in HChess) into a lib?
+-- TODO: Should I organize code a bit differently? Extract more advanced logic from core files
+--   like Move, Board, and similar and group it under Rules (Start, End, Moves, ...)?
 -- TODO: Separate ASCII playing into its own module tree (HChess.Ascii) and also
 -- implement alternative frontends like Brick (HChess.Terminal) and also real GUI (HChess.GUI).
 -- Maybe group them all under `HChess.Frontend`.
@@ -24,28 +28,39 @@ main = do
 gameLoop :: Game -> IO ()
 gameLoop game = do
   clearScreen
-
-  putStrLn $ unlines $ showBoardAscii $ getBoard game
-
-  -- TODO: Print pieces that are out of the game, in two rows, black and white.
+  printBoard
+  printCapturedPieces
   -- TODO: Print all the moves that happened so far, in chess notation.
-
-  putStrLn $
-    if isPlayerInCheck (getCurrentPlayerColor game) (getBoard game)
-      then "Check!"
-      else ""
-
+  printCheckStatus
   case checkIfGameOver game of
-    Just result -> case result of
+    Just result -> printGameResult result
+    Nothing -> readAndPerformLegalMove game >>= gameLoop
+  where
+    board = getBoard game
+
+    currentColor = getCurrentPlayerColor game
+
+    printBoard = putStrLn $ unlines $ showBoardAscii board
+
+    printCheckStatus =
+      putStrLn $ if isPlayerInCheck currentColor board then "Check!" else ""
+
+    printGameResult result = case result of
       Draw -> putStrLn "Draw!"
       Victory color -> putStrLn $ show color <> " won!"
-    Nothing -> do
-      putStrLn $ show (getCurrentPlayerColor game) <> ", input your move:"
-      game' <- readAndPerformLegalMove game
-      gameLoop game'
+
+    printCapturedPieces = do
+      let capturedPieces = getCapturedPieces board
+      forM_
+        [White, Black]
+        ( \color ->
+            (putStrLn . concatMap showPiece . sort . filter ((== color) . pieceColor))
+              capturedPieces
+        )
 
 readAndPerformLegalMove :: Game -> IO Game
 readAndPerformLegalMove game = do
+  putStrLn $ show (getCurrentPlayerColor game) <> ", input your move:"
   moveOrder <- readMoveOrder
   case performMoveOrder game moveOrder of
     Left errorMsg -> print errorMsg >> readAndPerformLegalMove game
@@ -105,18 +120,18 @@ showBoardAscii board =
           "\ESC[0m"
         ]
 
-    showPiece :: Piece -> String
-    showPiece (Piece Black pType) = case pType of
-      King -> "\x2654"
-      Queen -> "\x2655"
-      Rook -> "\x2656"
-      Bishop -> "\x2657"
-      Knight -> "\x2658"
-      Pawn -> "\x2659"
-    showPiece (Piece White pType) = case pType of
-      King -> "\x265A"
-      Queen -> "\x265B"
-      Rook -> "\x265C"
-      Bishop -> "\x265D"
-      Knight -> "\x265E"
-      Pawn -> "\x265F"
+showPiece :: Piece -> String
+showPiece (Piece Black pType) = case pType of
+  King -> "\x2654"
+  Queen -> "\x2655"
+  Rook -> "\x2656"
+  Bishop -> "\x2657"
+  Knight -> "\x2658"
+  Pawn -> "\x2659"
+showPiece (Piece White pType) = case pType of
+  King -> "\x265A"
+  Queen -> "\x265B"
+  Rook -> "\x265C"
+  Bishop -> "\x265D"
+  Knight -> "\x265E"
+  Pawn -> "\x265F"

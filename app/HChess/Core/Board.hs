@@ -12,10 +12,11 @@ module HChess.Core.Board
     removeAnyPieceAt,
     isSquareEmpty,
     doesSquareContainOpponentsPiece,
+    getCapturedPieces,
   )
 where
 
-import Data.List (find)
+import Data.List (find, (\\))
 import Data.Maybe (isNothing)
 import HChess.Core.Board.File (File (..))
 import HChess.Core.Board.Rank (Rank (..))
@@ -74,3 +75,9 @@ isSquareEmpty square = isNothing . getPieceAt square
 doesSquareContainOpponentsPiece :: Color -> Square -> Board -> Bool
 doesSquareContainOpponentsPiece currentPlayerColor square =
   (Just (oppositeColor currentPlayerColor) ==) . (pieceColor <$>) . getPieceAt square
+
+getCapturedPieces :: Board -> [Piece]
+getCapturedPieces board = initialPieces \\ currentPieces
+  where
+    currentPieces = fst <$> boardPieces board
+    initialPieces = fst <$> boardPieces initialBoard

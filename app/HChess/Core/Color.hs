@@ -5,7 +5,7 @@ module HChess.Core.Color
 where
 
 data Color = White | Black
-  deriving (Eq, Show)
+  deriving (Eq, Show, Ord)
 
 oppositeColor :: Color -> Color
 oppositeColor White = Black

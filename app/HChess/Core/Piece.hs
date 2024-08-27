@@ -10,10 +10,10 @@ data Piece = Piece
   { pieceColor :: !Color,
     pieceType :: !PieceType
   }
-  deriving (Eq, Show)
+  deriving (Show, Eq, Ord)
 
 data PieceType = Pawn | Knight | Bishop | Rook | Queen | King
-  deriving (Eq, Enum, Ord)
+  deriving (Eq, Enum, Bounded, Ord)
 
 instance Show PieceType where
   show piece = case piece of
