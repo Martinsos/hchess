@@ -13,6 +13,8 @@ import HChess.Core.MoveOrder (MoveOrder (MoveOrder), performMoveOrder)
 import HChess.Core.Piece (Piece (..), PieceType (..))
 import HChess.Utils (safeToEnum)
 
+-- TODO: Finish AlgebraicNotation.hs <--- I STOPPED HERE !!!
+
 -- TODO: Write tests.
 -- TODO: Separate core logic (game, move, ... -> most/all of the stuff in HChess) into a lib?
 -- TODO: Should I organize code a bit differently? Extract more advanced logic from core files
@@ -20,6 +22,8 @@ import HChess.Utils (safeToEnum)
 -- TODO: Separate ASCII playing into its own module tree (HChess.Ascii) and also
 -- implement alternative frontends like Brick (HChess.Terminal) and also real GUI (HChess.GUI).
 -- Maybe group them all under `HChess.Frontend`.
+-- TODO: Upgrade the project to newer GHC.
+-- TODO: Update README.md .
 
 main :: IO ()
 main = do
@@ -106,7 +110,7 @@ showBoardAscii board =
     showRankLetter rank = show $ 1 + fromEnum rank
 
     showFileNumber :: File -> String
-    showFileNumber file = pure $ chr $ ord 'A' + fromEnum file
+    showFileNumber file = pure $ chr $ ord 'a' + fromEnum file
 
     showSquare :: Square -> String
     showSquare square =

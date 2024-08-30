@@ -40,6 +40,7 @@ executable hchess
 
   -- Modules included in this executable, other than Main.
   other-modules:
+    HChess.Core.AlgebraicNotation
     HChess.Core.Board
     HChess.Core.Board.File
     HChess.Core.Board.Movement

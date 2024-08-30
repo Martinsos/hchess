@@ -22,7 +22,7 @@ data Square = Square
   deriving (Eq, Ord)
 
 instance Show Square where
-  show (Square f r) = show f ++ show r
+  show (Square f r) = show f <> show r
 
 squareColor :: Square -> Color
 squareColor (Square file rank) =
