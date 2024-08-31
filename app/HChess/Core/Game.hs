@@ -4,6 +4,7 @@ module HChess.Core.Game
     getMoves,
     getBoard,
     getCurrentPlayerColor,
+    oneMoveBack,
   )
 where
 
@@ -25,3 +26,7 @@ getBoard (Game moves) = foldl' performLegalMoveOnBoard initialBoard $ reverse mo
 
 getCurrentPlayerColor :: Game -> Color
 getCurrentPlayerColor (Game moves) = if even (length moves) then White else Black
+
+oneMoveBack :: Game -> Game
+oneMoveBack (Game []) = Game []
+oneMoveBack (Game (_ : moves)) = Game moves

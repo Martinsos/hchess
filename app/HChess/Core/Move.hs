@@ -1,13 +1,22 @@
 module HChess.Core.Move
   ( Move (..),
     MoveType (..),
+    getMoveSrcSquare,
     getMoveDstSquare,
     performLegalMoveOnBoard,
   )
 where
 
 import Data.Maybe (fromJust)
-import HChess.Core.Board (Board, File (..), Square (..), getPieceAt, movePieceFromTo, putPieceAt, removeAnyPieceAt)
+import HChess.Core.Board
+  ( Board,
+    File (..),
+    Square (..),
+    getPieceAt,
+    movePieceFromTo,
+    putPieceAt,
+    removeAnyPieceAt,
+  )
 import HChess.Core.Piece (Piece (..), PieceType)
 
 -- TODO: Consider using LiquidHaskell for stronger compile time checks, for example to check
@@ -35,6 +44,9 @@ data MoveType
   | QueensideCastling
   | PawnPromotion !PieceType
   deriving (Eq, Show, Ord)
+
+getMoveSrcSquare :: Move -> Square
+getMoveSrcSquare (Move srcSquare _ _) = srcSquare
 
 getMoveDstSquare :: Move -> Square
 getMoveDstSquare (Move _ dstSquare _) = dstSquare

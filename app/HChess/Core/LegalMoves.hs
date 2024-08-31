@@ -1,14 +1,19 @@
 module HChess.Core.LegalMoves
   ( getLegalMoves,
+    getAllLegalMoves,
   )
 where
 
+import Data.Either (fromRight)
+import Data.Foldable (foldl')
 import qualified Data.Set as S
+import HChess.Core.Board (boardPieces)
 import HChess.Core.Board.Square (Square (..))
 import HChess.Core.Check (isPlayerInCheck)
 import HChess.Core.Game (getBoard, getCurrentPlayerColor)
 import HChess.Core.Game.Internal (Game (..))
 import HChess.Core.Move (Move (..), performLegalMoveOnBoard)
+import HChess.Core.Piece (Piece (..))
 import HChess.Core.PossibleMoves (getPossibleMoves)
 
 type LegalMovesInquiryError = String
@@ -25,3 +30,11 @@ getLegalMoves game srcSquare = do
     doesMovePutOwnKingInCheck :: Move -> Bool
     doesMovePutOwnKingInCheck move =
       isPlayerInCheck currentPlayerColor $ performLegalMoveOnBoard board move
+
+getAllLegalMoves :: Game -> S.Set Move
+getAllLegalMoves game =
+  foldl' S.union S.empty $
+    fromRight (error "Can't happen") . getLegalMoves game . snd
+      <$> filter
+        ((getCurrentPlayerColor game ==) . pieceColor . fst)
+        (boardPieces (getBoard game))

@@ -3,6 +3,7 @@ module Main where
 import Control.Monad (forM_)
 import Data.Char (chr, ord, toLower)
 import Data.List (sort)
+import HChess.Core.AlgebraicNotation (getStdNotationForGame)
 import HChess.Core.Board (Board, File (..), Rank (..), Square (..), getCapturedPieces, getPieceAt)
 import HChess.Core.Board.Square (squareColor)
 import HChess.Core.Check (isPlayerInCheck)
@@ -10,7 +11,7 @@ import HChess.Core.Color (Color (..))
 import HChess.Core.Game (Game, getBoard, getCurrentPlayerColor, newGame)
 import HChess.Core.GameResult (GameResult (..), checkIfGameOver)
 import HChess.Core.MoveOrder (MoveOrder (MoveOrder), performMoveOrder)
-import HChess.Core.Piece (Piece (..), PieceType (..))
+import HChess.Core.Piece (Piece (..), pieceToUnicode)
 import HChess.Utils (safeToEnum)
 
 -- TODO: Finish AlgebraicNotation.hs <--- I STOPPED HERE !!!
@@ -34,7 +35,7 @@ gameLoop game = do
   clearScreen
   printBoard
   printCapturedPieces
-  -- TODO: Print all the moves that happened so far, in chess notation.
+  printStdNotation
   printCheckStatus
   case checkIfGameOver game of
     Just result -> printGameResult result
@@ -58,9 +59,15 @@ gameLoop game = do
       forM_
         [White, Black]
         ( \color ->
-            (putStrLn . concatMap showPiece . sort . filter ((== color) . pieceColor))
+            (putStrLn . concatMap pieceToUnicode . sort . filter ((== color) . pieceColor))
               capturedPieces
         )
+
+    printStdNotation = do
+      let moves = getStdNotationForGame game
+      -- TODO: Group movs by turns (white and black) prefixed with integers.
+      --   Check wikipedia for details.
+      print $ reverse moves
 
 readAndPerformLegalMove :: Game -> IO Game
 readAndPerformLegalMove game = do
@@ -119,23 +126,7 @@ showBoardAscii board =
             White -> "\ESC[45m"
             Black -> "\ESC[40m",
           " ",
-          maybe " " showPiece (getPieceAt square board),
+          maybe " " pieceToUnicode (getPieceAt square board),
           " ",
           "\ESC[0m"
         ]
-
-showPiece :: Piece -> String
-showPiece (Piece Black pType) = case pType of
-  King -> "\x2654"
-  Queen -> "\x2655"
-  Rook -> "\x2656"
-  Bishop -> "\x2657"
-  Knight -> "\x2658"
-  Pawn -> "\x2659"
-showPiece (Piece White pType) = case pType of
-  King -> "\x265A"
-  Queen -> "\x265B"
-  Rook -> "\x265C"
-  Bishop -> "\x265D"
-  Knight -> "\x265E"
-  Pawn -> "\x265F"
