@@ -14,8 +14,6 @@ import HChess.Core.MoveOrder (MoveOrder (MoveOrder), performMoveOrder)
 import HChess.Core.Piece (Piece (..), pieceToUnicode)
 import HChess.Utils (safeToEnum)
 
--- TODO: Finish AlgebraicNotation.hs <--- I STOPPED HERE !!!
-
 -- TODO: Write tests.
 -- TODO: Separate core logic (game, move, ... -> most/all of the stuff in HChess) into a lib?
 -- TODO: Should I organize code a bit differently? Extract more advanced logic from core files
