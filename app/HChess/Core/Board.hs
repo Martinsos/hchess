@@ -76,6 +76,13 @@ doesSquareContainOpponentsPiece :: Color -> Square -> Board -> Bool
 doesSquareContainOpponentsPiece currentPlayerColor square =
   (Just (oppositeColor currentPlayerColor) ==) . (pieceColor <$>) . getPieceAt square
 
+-- | TODO: This function doesn't work fully correctly!
+-- In case of pawn promotion, it will get messed up, because it will mark that pawn as captured
+-- while it was not, and it will remove queen from the captured pieces if it was captured previously, ... .
+-- Some other parts of code rely on this function to work correctly, so this is a real problem.
+-- Solution is to not take just the Board but to take the Game (and move this function from this file somewhere else),
+-- and then go through moves and actually figure out what was captured in each move.
+-- So basically replaying the game.
 getCapturedPieces :: Board -> [Piece]
 getCapturedPieces board = initialPieces \\ currentPieces
   where

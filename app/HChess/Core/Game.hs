@@ -21,6 +21,10 @@ newGame = Game []
 getMoves :: Game -> [Move]
 getMoves (Game moves) = moves
 
+-- | TODO: Here I assume game always starts with the normal, fresh new chess board.
+-- But, for the sake of chess puzzles and similar, it might make sense to sometimes have it start
+-- from some other starting point. We could support this by passing in the initial board
+-- when creating a new game, and not assuming the initial board.
 getBoard :: Game -> Board
 getBoard (Game moves) = foldl' performLegalMoveOnBoard initialBoard $ reverse moves
 
