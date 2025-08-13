@@ -1,16 +1,16 @@
-cabal-version:      2.4
+cabal-version:      3.0
 
 name:               hchess
 version:            0.1.0.0
 author:             Martin Sosic
 maintainer:         sosic.martin@gmail.com
 
--- A copyright notice.
--- copyright:
--- category:
-extra-source-files:
+extra-doc-files:
   CHANGELOG.md
   README.md
+
+-- extra-source-files:
+--
 
 common common-all
   default-language: Haskell2010
@@ -29,6 +29,10 @@ common common-all
     QuasiQuotes
     ScopedTypeVariables
     LambdaCase
+    DuplicateRecordFields
+    OverloadedRecordDot
+    -- NoFieldSelectors  -- TODO: Enable it and update code to work.
+    NamedFieldPuns
 
 common common-exe
   ghc-options:
@@ -61,6 +65,6 @@ executable hchess
     HChess.Core.PossibleMoves.Special
     HChess.Utils
 
-  build-depends:    base ^>=4.14.3.0,
-                    containers ^>=0.6.5.1
+  build-depends:    base ^>=4.21.0.0,
+                    containers ^>=0.8
   hs-source-dirs:   app
