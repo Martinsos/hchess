@@ -5,6 +5,7 @@ module HChess.Core.LegalMoves
 where
 
 import Data.Either (fromRight)
+import Data.Foldable (foldl')
 import qualified Data.Set as S
 import HChess.Core.Board (boardPieces)
 import HChess.Core.Board.Square (Square (..))

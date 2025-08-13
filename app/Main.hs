@@ -14,14 +14,12 @@ import HChess.Core.MoveOrder (MoveOrder (MoveOrder), performMoveOrder)
 import HChess.Core.Piece (Piece (..), pieceToUnicode)
 import HChess.Utils (safeToEnum)
 
--- TODO: Write tests.
 -- TODO: Separate core logic (game, move, ... -> most/all of the stuff in HChess) into a lib?
 -- TODO: Should I organize code a bit differently? Extract more advanced logic from core files
 --   like Move, Board, and similar and group it under Rules (Start, End, Moves, ...)?
 -- TODO: Separate ASCII playing into its own module tree (HChess.Ascii) and also
 -- implement alternative frontends like Brick (HChess.Terminal) and also real GUI (HChess.GUI).
 -- Maybe group them all under `HChess.Frontend`.
--- TODO: Upgrade the project to newer GHC.
 -- TODO: Update README.md .
 
 main :: IO ()

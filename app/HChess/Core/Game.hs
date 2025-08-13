@@ -8,6 +8,7 @@ module HChess.Core.Game
   )
 where
 
+import Data.Foldable (foldl')
 import HChess.Core.Board (Board, initialBoard)
 import HChess.Core.Color (Color (..))
 import HChess.Core.Game.Internal (Game (..))
