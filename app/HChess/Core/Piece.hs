@@ -8,7 +8,7 @@ where
 import HChess.Core.Color (Color (..))
 
 data Piece = Piece
-  { pieceColor :: !Color,
+  { color :: !Color,
     pieceType :: !PieceType
   }
   deriving (Show, Eq, Ord)

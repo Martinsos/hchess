@@ -16,8 +16,8 @@ import HChess.Core.Color (Color (..))
 import HChess.Utils (safePred, safeSucc)
 
 data Square = Square
-  { squareFile :: !File,
-    squareRank :: !Rank
+  { file :: !File,
+    rank :: !Rank
   }
   deriving (Eq, Ord)
 

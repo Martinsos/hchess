@@ -22,7 +22,7 @@ import HChess.Core.Board.File (File (..))
 import HChess.Core.Board.Rank (Rank (..))
 import HChess.Core.Board.Square (Square (..))
 import HChess.Core.Color (Color (..), oppositeColor)
-import HChess.Core.Piece (Piece (..), PieceType (..), pieceColor)
+import HChess.Core.Piece (Piece (..), PieceType (..), color)
 
 -- | TODO: Instead of list, use Map from Square to Piece, so that we can't have
 -- invalid situations where we have multiple pieces at the same square.
@@ -74,7 +74,7 @@ isSquareEmpty square = isNothing . getPieceAt square
 
 doesSquareContainOpponentsPiece :: Color -> Square -> Board -> Bool
 doesSquareContainOpponentsPiece currentPlayerColor square =
-  (Just (oppositeColor currentPlayerColor) ==) . ((.pieceColor) <$>) . getPieceAt square
+  (Just (oppositeColor currentPlayerColor) ==) . ((.color) <$>) . getPieceAt square
 
 -- | TODO: This function doesn't work fully correctly!
 -- In case of pawn promotion, it will get messed up, because it will mark that pawn as captured
