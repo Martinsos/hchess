@@ -74,7 +74,7 @@ isSquareEmpty square = isNothing . getPieceAt square
 
 doesSquareContainOpponentsPiece :: Color -> Square -> Board -> Bool
 doesSquareContainOpponentsPiece currentPlayerColor square =
-  (Just (oppositeColor currentPlayerColor) ==) . (pieceColor <$>) . getPieceAt square
+  (Just (oppositeColor currentPlayerColor) ==) . ((.pieceColor) <$>) . getPieceAt square
 
 -- | TODO: This function doesn't work fully correctly!
 -- In case of pawn promotion, it will get messed up, because it will mark that pawn as captured

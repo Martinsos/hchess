@@ -31,7 +31,7 @@ common common-all
     LambdaCase
     DuplicateRecordFields
     OverloadedRecordDot
-    -- NoFieldSelectors  -- TODO: Enable it and update code to work.
+    NoFieldSelectors
     NamedFieldPuns
 
 common common-exe

@@ -66,24 +66,24 @@ instance Show StdNotationMove where
   show SNKingsideCastling = "O-O"
   show SNQueensideCastling = "O-O-O"
   show (SNEnPassant move) =
-    show (snepSrcFile move) <> captureSymbol <> show (snepDstSquare move) <> " e.p."
+    show move.snepSrcFile <> captureSymbol <> show move.snepDstSquare <> " e.p."
   show (SNPawnPromotion move) =
-    maybe "" show (snppSrcFile move)
-      <> (if snppIsCapture move then captureSymbol else "")
-      <> show (snppDstSquare move)
+    maybe "" show move.snppSrcFile
+      <> (if move.snppIsCapture then captureSymbol else "")
+      <> show move.snppDstSquare
       <> "="
-      <> pieceToUnicode (snppNewPiece move)
-      <> (if snppIsCheck move then checkSymbol else "")
+      <> pieceToUnicode move.snppNewPiece
+      <> (if move.snppIsCheck then checkSymbol else "")
   show (SNRegularMove move) =
-    ( if pieceType (snrmPiece move) == Pawn
+    ( if move.snrmPiece.pieceType == Pawn
         then ""
-        else pieceToUnicode (snrmPiece move)
+        else pieceToUnicode move.snrmPiece
     )
-      <> maybe "" show (snrmSrcFile move)
-      <> maybe "" show (snrmSrcRank move)
-      <> (if snrmIsCapture move then captureSymbol else "")
-      <> show (snrmDstSquare move)
-      <> (if snrmIsCheck move then checkSymbol else "")
+      <> maybe "" show move.snrmSrcFile
+      <> maybe "" show move.snrmSrcRank
+      <> (if move.snrmIsCapture then captureSymbol else "")
+      <> show move.snrmDstSquare
+      <> (if move.snrmIsCheck then checkSymbol else "")
 
 captureSymbol :: String
 captureSymbol = "x"
@@ -107,7 +107,7 @@ getStdNotationForLegalMove game move@(Move srcSquare dstSquare moveType) =
     EnPassant ->
       SNEnPassant $
         StdNotationEnPassant
-          { snepSrcFile = squareFile srcSquare,
+          { snepSrcFile = srcSquare.squareFile,
             snepDstSquare = dstSquare
           }
     (PawnPromotion newPieceType) ->
@@ -115,7 +115,7 @@ getStdNotationForLegalMove game move@(Move srcSquare dstSquare moveType) =
         StdNotationPawnPromotion
           { snppSrcFile =
               if not (null ambiguousMoves)
-                then Just (squareFile srcSquare)
+                then Just srcSquare.squareFile
                 else Nothing,
             snppIsCapture = not $ isSquareEmpty dstSquare board,
             snppDstSquare = dstSquare,
@@ -127,12 +127,12 @@ getStdNotationForLegalMove game move@(Move srcSquare dstSquare moveType) =
         StdNotationRegularMove
           { snrmPiece = piece,
             snrmSrcFile =
-              if any ((squareRank srcSquare ==) . squareRank . getMoveSrcSquare) ambiguousMoves
-                then Just (squareFile srcSquare)
+              if any ((srcSquare.squareRank ==) . (.squareRank) . getMoveSrcSquare) ambiguousMoves
+                then Just srcSquare.squareFile
                 else Nothing,
             snrmSrcRank =
-              if any ((squareFile srcSquare ==) . squareFile . getMoveSrcSquare) ambiguousMoves
-                then Just (squareRank srcSquare)
+              if any ((srcSquare.squareFile ==) . (.squareFile) . getMoveSrcSquare) ambiguousMoves
+                then Just srcSquare.squareRank
                 else Nothing,
             snrmIsCapture = isCapture,
             snrmDstSquare = dstSquare,
@@ -141,7 +141,7 @@ getStdNotationForLegalMove game move@(Move srcSquare dstSquare moveType) =
   where
     board = getBoard game
     piece = fromJust $ getPieceAt srcSquare board
-    currentPlayerColor = pieceColor piece
+    currentPlayerColor = piece.pieceColor
     opponentColor = oppositeColor currentPlayerColor
     boardAfterMove = performLegalMoveOnBoard board move
     isCheck = isPlayerInCheck opponentColor boardAfterMove
@@ -155,4 +155,5 @@ getStdNotationForLegalMove game move@(Move srcSquare dstSquare moveType) =
                   && piece == piece'
                   && dstSquare == dstSquare'
         )
-        $ toList $ getAllLegalMoves game
+        $ toList
+        $ getAllLegalMoves game

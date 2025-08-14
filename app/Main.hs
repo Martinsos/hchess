@@ -55,7 +55,7 @@ gameLoop game = do
       forM_
         [White, Black]
         ( \color ->
-            (putStrLn . concatMap pieceToUnicode . sort . filter ((== color) . pieceColor))
+            (putStrLn . concatMap pieceToUnicode . sort . filter ((== color) . (.pieceColor)))
               capturedPieces
         )
 

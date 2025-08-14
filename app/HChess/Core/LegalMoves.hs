@@ -36,5 +36,5 @@ getAllLegalMoves game =
   foldl' S.union S.empty $
     fromRight (error "Can't happen") . getLegalMoves game . snd
       <$> filter
-        ((getCurrentPlayerColor game ==) . pieceColor . fst)
+        ((getCurrentPlayerColor game ==) . (.pieceColor) . fst)
         (boardPieces (getBoard game))

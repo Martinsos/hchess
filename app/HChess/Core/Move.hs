@@ -58,15 +58,15 @@ performLegalMoveOnBoard board (Move src dst moveType) =
     RegularMove -> movePieceFromTo' src dst board
     EnPassant ->
       movePieceFromTo' src dst
-        . removeAnyPieceAt (Square (squareFile dst) (squareRank src))
+        . removeAnyPieceAt (Square dst.squareFile src.squareRank)
         $ board
     KingsideCastling ->
-      let (rookSrcSquare, rookDstSquare) = (Square FH $ squareRank src, Square FF $ squareRank src)
+      let (rookSrcSquare, rookDstSquare) = (Square FH src.squareRank, Square FF src.squareRank)
        in movePieceFromTo' src dst
             . movePieceFromTo' rookSrcSquare rookDstSquare
             $ board
     QueensideCastling ->
-      let (rookSrcSquare, rookDstSquare) = (Square FA $ squareRank src, Square FD $ squareRank src)
+      let (rookSrcSquare, rookDstSquare) = (Square FA src.squareRank, Square FD src.squareRank)
        in movePieceFromTo' src dst
             . movePieceFromTo' rookSrcSquare rookDstSquare
             $ board
